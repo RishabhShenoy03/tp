@@ -90,6 +90,24 @@ public class Ui {
         System.out.println("Total value: " + formatMoney(portfolio.getPricedTotalValue()));
     }
 
+    public void showPortfolioValue(Portfolio portfolio) {
+        System.out.println("Portfolio: " + portfolio.getName());
+        System.out.println("Total value (priced holdings): " + formatMoney(portfolio.getPricedTotalValue()));
+        System.out.println("Unpriced holdings: " + portfolio.countUnpricedHoldings());
+    }
+
+    public void showBulkUpdateResult(Storage.BulkUpdateResult result) {
+        System.out.println("Updated prices: " + result.successCount() + " succeeded, "
+                + result.failedCount() + " failed");
+
+        if (!result.failures().isEmpty()) {
+            System.out.println("Failed rows:");
+            for (String failure : result.failures()) {
+                System.out.println(failure);
+            }
+        }
+    }
+
     public static String formatMoney(double value) {
         return MONEY_FORMAT.format(value);
     }
