@@ -39,7 +39,7 @@ public class UiTest {
     }
 
     @Test
-    void showPortfolios_marksActivePortfolio() {
+    void showPortfolios_marksActivePortfolio() throws AppException {
         Ui ui = new Ui();
         PortfolioBook book = new PortfolioBook();
         book.createPortfolio("growth");

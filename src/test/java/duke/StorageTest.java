@@ -14,7 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 public class StorageTest {
     @Test
-    void load_emptyFile_returnsEmptyPortfolioBook(@TempDir Path tempDir) {
+    void load_emptyFile_returnsEmptyPortfolioBook(@TempDir Path tempDir) throws AppException {
         Path file = tempDir.resolve("data.txt");
         Storage storage = new Storage(file.toString());
 
@@ -25,7 +25,7 @@ public class StorageTest {
     }
 
     @Test
-    void save_thenLoad_restoresPortfolioData(@TempDir Path tempDir) {
+    void save_thenLoad_restoresPortfolioData(@TempDir Path tempDir) throws AppException {
         Path file = tempDir.resolve("data.txt");
         Storage storage = new Storage(file.toString());
 
@@ -100,7 +100,7 @@ public class StorageTest {
 
         Path missing = tempDir.resolve("missing.csv");
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(AppException.class, () ->
                 storage.loadPriceUpdates(missing, portfolio)
         );
     }

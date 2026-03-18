@@ -1,7 +1,6 @@
 package duke;
 
 import java.nio.file.Path;
-import java.util.List;
 
 public class CG2StocksTracker {
     private static final String FILE_PATH = "data/CG2StocksTracker.txt";
@@ -49,48 +48,40 @@ public class CG2StocksTracker {
     }
 
     private boolean execute(ParsedCommand command) throws AppException {
-        return switch (command.type()) {
-            case CREATE -> {
-                handleCreate(command);
-                yield true;
-            }
-            case USE -> {
-                handleUse(command);
-                yield true;
-            }
-            case LIST -> {
-                handleList(command);
-                yield true;
-            }
-            case ADD -> {
-                handleAdd(command);
-                yield true;
-            }
-            case REMOVE -> {
-                handleRemove(command);
-                yield true;
-            }
-            case SET -> {
-                handleSet(command);
-                yield true;
-            }
-            case SET_MANY -> {
-                handleSetMany(command);
-                yield true;
-            }
-            case VALUE -> {
-                handleValue();
-                yield true;
-            }
-            case HELP -> {
-                ui.showHelp();
-                yield true;
-            }
-            case EXIT -> {
-                ui.showGoodbye();
-                yield false;
-            }
-        };
+        switch (command.type()) {
+        case CREATE:
+            handleCreate(command);
+            return true;
+        case USE:
+            handleUse(command);
+            return true;
+        case LIST:
+            handleList(command);
+            return true;
+        case ADD:
+            handleAdd(command);
+            return true;
+        case REMOVE:
+            handleRemove(command);
+            return true;
+        case SET:
+            handleSet(command);
+            return true;
+        case SET_MANY:
+            handleSetMany(command);
+            return true;
+        case VALUE:
+            handleValue();
+            return true;
+        case HELP:
+            ui.showHelp();
+            return true;
+        case EXIT:
+            ui.showGoodbye();
+            return false;
+        default:
+            throw new AppException("Unknown command type: " + command.type());
+        }
     }
 
     private void handleCreate(ParsedCommand command) throws AppException {
