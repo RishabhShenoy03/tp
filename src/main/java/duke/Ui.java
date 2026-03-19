@@ -1,6 +1,6 @@
 package duke;
-import java.util.List;
 import java.text.DecimalFormat;
+import java.util.List;
 import java.util.Scanner;
 
 public class Ui {
@@ -25,7 +25,7 @@ public class Ui {
                             \\$$    $$  | $$    \\$$    $$| $$  \\$$$| $$  \\$$\\ \\$$    $$
                              \\$$$$$$    \\$$     \\$$$$$$  \\$$   \\$$ \\$$   \\$$  \\$$$$$$
 
-""");
+                            """);
         System.out.println("Type /help to see available commands.");
     }
 
