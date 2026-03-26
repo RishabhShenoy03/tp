@@ -78,9 +78,10 @@ public class Portfolio {
 
     public int setPriceForTicker(String ticker, double price) {
         int updatedCount = 0;
+        String normalizedTicker = ticker == null ? "" : ticker.trim().toUpperCase();
 
         for (Holding holding : holdings.values()) {
-            if (holding.getTicker().equals(ticker)) {
+            if (holding.getTicker().trim().toUpperCase().equals(normalizedTicker)) {
                 holding.setLastPrice(price);
                 updatedCount++;
             }

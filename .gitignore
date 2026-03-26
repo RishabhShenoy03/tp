@@ -18,3 +18,4 @@ text-ui-test/EXPECTED-UNIX.TXT
 
 /.vscode/
 /data/CG2StocksTracker.txt
+text-ui-test/data/CG2StocksTracker.txt

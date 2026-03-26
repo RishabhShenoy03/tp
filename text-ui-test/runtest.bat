@@ -6,15 +6,14 @@ cd ..
 if exist data\CG2StocksTracker.txt del /q data\CG2StocksTracker.txt
 call gradlew clean shadowJar
 
-cd build\libs
 for /f "tokens=*" %%a in (
-    'dir /b *.jar'
+    'dir /b build\libs\*.jar'
 ) do (
-    set jarloc=%%a
+    set jarloc=build\libs\%%a
 )
 
-java -jar %jarloc% < ..\..\text-ui-test\input.txt > ..\..\text-ui-test\ACTUAL.TXT
+java -jar %jarloc% < text-ui-test\input.txt > text-ui-test\ACTUAL.TXT
 
-cd ..\..\text-ui-test
+cd text-ui-test
 
 FC ACTUAL.TXT EXPECTED.TXT >NUL && ECHO Test passed! || Echo Test failed!

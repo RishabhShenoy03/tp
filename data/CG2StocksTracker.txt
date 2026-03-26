@@ -1,3 +1,4 @@
-ACTIVE|rish
-PORTFOLIO|rish
-PORTFOLIO_PNL|rish|0.0|v1
+ACTIVE|RishPortfolio
+PORTFOLIO|RishPortfolio
+PORTFOLIO_PNL|RishPortfolio|440.0|v1
+HOLDING|RishPortfolio|BOND|BND|3.0|82.0|80.0|v2

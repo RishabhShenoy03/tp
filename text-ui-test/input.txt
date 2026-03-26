@@ -21,7 +21,7 @@
 /value
 /remove --type ETF --ticker QQQ --price 405
 /value
-/setmany --file ../../text-ui-test/prices.csv
+/setmany --file text-ui-test/prices.csv
 /value
 /list --bond
 /list --portfolios

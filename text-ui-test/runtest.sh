@@ -7,9 +7,9 @@ cd ..
 rm -f data/CG2StocksTracker.txt
 ./gradlew clean shadowJar
 
-cd text-ui-test
+java  -jar $(find build/libs/ -mindepth 1 -print -quit) < text-ui-test/input.txt > text-ui-test/ACTUAL.TXT
 
-java  -jar $(find ../build/libs/ -mindepth 1 -print -quit) < input.txt > ACTUAL.TXT
+cd text-ui-test
 
 cp EXPECTED.TXT EXPECTED-UNIX.TXT
 dos2unix EXPECTED-UNIX.TXT ACTUAL.TXT
