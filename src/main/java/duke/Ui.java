@@ -326,7 +326,7 @@ public class Ui {
                 }
             }
 
-                System.out.println(String.format("%-3d %-5s  %-5s%8s %8s %8s %10s %8s",
+            System.out.println(String.format("%-3d %-5s  %-5s%8s %8s %8s %10s %8s",
                     i + 1,
                     holding.getAssetType().name(),
                     toMaxTickerWidth(holding.getTicker()),
@@ -340,7 +340,8 @@ public class Ui {
         int unpricedCount = holdings.size() - pricedCount;
         System.out.println("---------------------------------------------------------------");
         System.out.println("Summary:");
-        System.out.println("- Holdings: " + holdings.size() + " (priced: " + pricedCount + ", unpriced: " + unpricedCount + ")");
+        System.out.println("- Holdings: " + holdings.size()
+                + " (priced: " + pricedCount + ", unpriced: " + unpricedCount + ")");
         System.out.println("- Open cost basis: " + formatMoney(totalCostBasis));
         System.out.println("- Unrealized P&L: " + formatSignedMoney(totalUnrealized)
                 + " (" + formatSignedPercent(safeRatio(totalUnrealized, totalCostBasis)) + ")");
