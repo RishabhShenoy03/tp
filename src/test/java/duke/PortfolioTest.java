@@ -1,6 +1,7 @@
 package duke;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import org.junit.jupiter.api.Test;
 
@@ -73,6 +74,28 @@ public class PortfolioTest {
         assertEquals(175.0, result.realizedPnl());
         assertEquals(175.0, portfolio.getTotalRealizedPnl());
         assertEquals(15.0, result.fees());
+    }
+
+    @Test
+    void removeHolding_fullSell_removesHoldingFromPortfolio() {
+        Portfolio portfolio = new Portfolio("demo");
+        portfolio.addHolding(AssetType.STOCK, "VOO", 2, 400, 0);
+
+        portfolio.removeHolding(AssetType.STOCK, "VOO", 2.0, 450.0, 0);
+
+        assertFalse(portfolio.hasHolding(AssetType.STOCK, "VOO"));
+    }
+
+    @Test
+    void addHolding_existingHoldingWithFees_recomputesAverageCostAcrossTrades() {
+        Portfolio portfolio = new Portfolio("demo");
+
+        portfolio.addHolding(AssetType.STOCK, "VOO", 2, 100, 10);
+        portfolio.addHolding(AssetType.STOCK, "VOO", 1, 130, 5);
+
+        Holding holding = portfolio.getHolding(AssetType.STOCK, "VOO");
+        assertEquals(3.0, holding.getQuantity());
+        assertEquals(115.0, holding.getAverageBuyPrice());
     }
 
     @Test

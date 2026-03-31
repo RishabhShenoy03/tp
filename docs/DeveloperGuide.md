@@ -596,6 +596,261 @@ The key idea is that:
 
 ---
 
+## Main app integration
+
+### Implementation
+
+The `CG2StocksTracker` class is the main integration point of the application.
+
+It is responsible for:
+
+- creating the main components (`Ui`, `Parser`, `Storage`, and `PortfolioBook`)
+
+- loading saved data at startup
+
+- running the main command loop
+
+- dispatching parsed commands to the correct handler
+
+- saving data after state-changing commands
+
+
+This keeps the responsibilities of the other classes small:
+
+- `Ui` handles input and output
+
+- `Parser` converts raw text into `ParsedCommand`
+
+- `PortfolioBook` and `Portfolio` handle domain logic
+
+- `Storage` handles file persistence
+
+
+---
+
+### Class Diagram
+
+```plantuml
+@startuml
+title Main App Integration
+
+class CG2StocksTracker
+class Ui
+class Parser
+class ParsedCommand
+class PortfolioBook
+class Storage
+
+Ui --> CG2StocksTracker
+CG2StocksTracker --> Parser
+Parser --> ParsedCommand
+CG2StocksTracker --> PortfolioBook
+CG2StocksTracker --> Storage
+@enduml
+```
+
+---
+
+### Sequence Diagram
+
+```plantuml
+@startuml
+title Executing a Command
+
+actor User
+participant Ui
+participant CG2StocksTracker
+participant Parser
+participant PortfolioBook
+participant Portfolio
+participant Storage
+
+CG2StocksTracker -> Ui : readCommand()
+Ui --> CG2StocksTracker : raw command
+CG2StocksTracker -> Parser : parse(...)
+Parser --> CG2StocksTracker : ParsedCommand
+CG2StocksTracker -> PortfolioBook : getActivePortfolio()
+PortfolioBook --> CG2StocksTracker : Portfolio
+CG2StocksTracker -> Portfolio : perform operation
+CG2StocksTracker -> Storage : save(...)
+CG2StocksTracker -> Ui : showMessage(...)
+@enduml
+```
+
+---
+
+### Explanation
+
+This diagram shows the overall flow of a state-changing command.
+
+The important points are:
+
+- `CG2StocksTracker` controls the command flow
+
+- parsing is separated from execution
+
+- the model performs the actual update
+
+- `Storage` is called only after a successful modification
+
+
+---
+
+### Design considerations
+
+The main application flow is coordinated in one class instead of being split across `Ui`, `Parser`, and the model.
+
+This approach was chosen because:
+
+- command handling stays in one place
+
+- errors can be handled consistently in the main loop
+
+- save operations are easier to control
+
+
+An alternative was to let `Ui` call model methods directly.
+
+This was not used because it would mix input handling, command dispatch, and business logic in the same component.
+
+---
+
+## Record fees
+
+### Implementation
+
+The `record fees` enhancement extends `/add` and `/remove` so that a user can include:
+
+- `--brokerage`
+
+- `--fx`
+
+- `--platform`
+
+
+These values are parsed as optional fields and stored in `ParsedCommand`.
+
+`ParsedCommand.totalFees()` combines the three fields into one value before the command is executed.
+
+For `/add`:
+
+1. `Parser.parseAdd(...)` reads the optional fee fields
+
+2. `CG2StocksTracker.handleAdd(...)` gets the total fee amount
+
+3. `Portfolio.addHolding(...)` updates the holding
+
+4. the fee is included in the holding's average buy price
+
+
+For `/remove`:
+
+1. `Parser.parseRemove(...)` reads the optional fee fields
+
+2. `CG2StocksTracker.handleRemove(...)` gets the total fee amount
+
+3. `Portfolio.removeHolding(...)` removes the quantity sold
+
+4. `Holding.removeQuantity(...)` deducts the fee from realized profit/loss
+
+
+This allows portfolio performance to reflect transaction costs instead of using only raw buy and sell prices.
+
+---
+
+### Class Diagram
+
+```plantuml
+@startuml
+title Record Fees
+
+class ParsedCommand {
+  +brokerageFee
+  +fxFee
+  +platformFee
+  +totalFees()
+}
+
+class CG2StocksTracker
+class Portfolio
+class Holding
+
+ParsedCommand --> CG2StocksTracker
+CG2StocksTracker --> Portfolio
+Portfolio --> Holding
+@enduml
+```
+
+---
+
+### Sequence Diagram
+
+```plantuml
+@startuml
+title Removing a Holding With Fees
+
+actor User
+participant Parser
+participant ParsedCommand
+participant CG2StocksTracker
+participant Portfolio
+participant Holding
+participant Storage
+
+User -> Parser : /remove ... --brokerage ... --fx ...
+Parser --> ParsedCommand : parsed command
+CG2StocksTracker -> ParsedCommand : totalFees()
+ParsedCommand --> CG2StocksTracker : fees
+CG2StocksTracker -> Portfolio : removeHolding(..., fees)
+Portfolio -> Holding : removeQuantity(..., fees)
+Holding --> Portfolio : realizedPnl
+Portfolio --> CG2StocksTracker : result
+CG2StocksTracker -> Storage : save(...)
+@enduml
+```
+
+---
+
+### Explanation
+
+This diagram shows how fees are included in a sell transaction.
+
+The important points are:
+
+- fee fields are parsed together with the command
+
+- the controller passes only the total fee amount to the model
+
+- realized profit/loss is calculated inside `Holding`
+
+- the updated portfolio state is saved after the operation
+
+
+---
+
+### Design considerations
+
+Fees are stored separately in `ParsedCommand`, but the model uses only the combined fee amount.
+
+This approach was chosen because:
+
+- the command format remains clear to the user
+
+- the model stays simple
+
+- fee handling logic is reused for both buy and sell commands
+
+
+For buys, fees are added into the effective purchase cost.
+
+For sells, fees are deducted from realized profit/loss.
+
+An alternative was to introduce a separate `Trade` class to store every transaction and fee category in full detail.
+
+This was not used because the current application stores aggregate holdings instead of a full transaction history.
+
+---
+
 # Design Considerations
 
 ---

@@ -38,6 +38,12 @@ public class ParserTest {
     }
 
     @Test
+    void parseAdd_withNegativeFee_throws() {
+        assertThrows(AppException.class, () ->
+                parser.parse("/add --type STOCK --ticker voo --qty 1 --price 300 --brokerage -1"));
+    }
+
+    @Test
     void parseRemove_withQtyAndPrice_parsesOptionalFields() throws AppException {
         ParsedCommand command = parser.parse(
                 "/remove --type STOCK --ticker VOO --qty 0.5 --price 600 --brokerage 1 --fx 2 --platform 3");
@@ -70,6 +76,12 @@ public class ParserTest {
 
         assertNull(command.quantity());
         assertNull(command.price());
+    }
+
+    @Test
+    void parseRemove_withNegativeFxFee_throws() {
+        assertThrows(AppException.class, () ->
+                parser.parse("/remove --type STOCK --ticker VOO --fx -2"));
     }
 
     @Test

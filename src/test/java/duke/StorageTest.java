@@ -49,6 +49,29 @@ public class StorageTest {
     }
 
     @Test
+    void save_thenLoad_restoresFeeAdjustedRealizedPnl(@TempDir Path tempDir) throws AppException {
+        Path file = tempDir.resolve("data.txt");
+        Storage storage = new Storage(file.toString());
+
+        PortfolioBook book = new PortfolioBook();
+        book.createPortfolio("income");
+        book.usePortfolio("income");
+
+        Portfolio portfolio = book.getActivePortfolio();
+        portfolio.addHolding(AssetType.ETF, "QQQ", 2, 400, 20);
+        portfolio.removeHolding(AssetType.ETF, "QQQ", 1.0, 600.0, 15);
+
+        storage.save(book);
+
+        PortfolioBook loaded = storage.load();
+        Portfolio loadedPortfolio = loaded.getPortfolio("income");
+
+        assertNotNull(loadedPortfolio);
+        assertEquals(175.0, loadedPortfolio.getTotalRealizedPnl());
+        assertEquals(410.0, loadedPortfolio.getHolding(AssetType.ETF, "QQQ").getAverageBuyPrice());
+    }
+
+    @Test
     void loadPriceUpdates_validCsv_updatesPrices(@TempDir Path tempDir) throws Exception {
         Path storageFile = tempDir.resolve("data.txt");
         Storage storage = new Storage(storageFile.toString());
