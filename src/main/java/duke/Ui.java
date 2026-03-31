@@ -104,6 +104,7 @@ public class Ui {
                    /set --ticker TICKER --price PRICE
                    /setmany --file FILEPATH
                    /value
+                   /insights [OPTIONS]
                    /help
                    /exit
                    """;

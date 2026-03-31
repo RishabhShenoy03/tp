@@ -9,6 +9,7 @@ public enum CommandType {
     SET,
     SET_MANY,
     VALUE,
+    INSIGHTS,
     HELP,
     EXIT
 }

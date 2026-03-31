@@ -34,6 +34,7 @@ public class Parser {
         case "setmany" -> parseSetMany(tokens);
         case "value" -> new ParsedCommand(CommandType.VALUE, null, null, null, null, null,
                 null, null, null, null, null);
+        case "insights" -> parseInsights(tokens);
         case "help" -> new ParsedCommand(CommandType.HELP, null, null, null, null, null,
                 null, null, null, null, null);
         case "exit" -> new ParsedCommand(CommandType.EXIT, null, null, null, null, null,
@@ -121,6 +122,12 @@ public class Parser {
         Path filePath = Paths.get(file);
         return new ParsedCommand(CommandType.SET_MANY, null, null, null, null, null,
                 null, null, null, null, filePath);
+    }
+
+    private ParsedCommand parseInsights(List<String> tokens) {
+        String rawOptions = (tokens.size() > 1) ? joinTail(tokens, 1) : null;
+        return new ParsedCommand(CommandType.INSIGHTS, null, null, null, null, null,
+                null, null, null, rawOptions, null);
     }
 
     private Map<String, String> parseOptions(List<String> tokens) throws AppException {

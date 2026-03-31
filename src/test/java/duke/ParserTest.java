@@ -3,7 +3,6 @@ package duke;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import org.junit.jupiter.api.Test;
 
 public class ParserTest {
@@ -103,5 +102,21 @@ public class ParserTest {
     @Test
     void parseList_withHoldingsTarget_throws() {
         assertThrows(AppException.class, () -> parser.parse("/list holdings"));
+    }
+
+    @Test
+    void parseInsights_withoutOptions_parsesInsightsType() throws AppException {
+        ParsedCommand command = parser.parse("/insights");
+
+        assertEquals(CommandType.INSIGHTS, command.type());
+        assertNull(command.listTarget());
+    }
+
+    @Test
+    void parseInsights_withOptions_storesRawOptions() throws AppException {
+        ParsedCommand command = parser.parse("/insights --top 3 --chart");
+
+        assertEquals(CommandType.INSIGHTS, command.type());
+        assertEquals("--top 3 --chart", command.listTarget());
     }
 }

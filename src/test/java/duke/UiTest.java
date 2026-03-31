@@ -37,6 +37,7 @@ public class UiTest {
         assertTrue(output.contains("/list --stock"));
         assertTrue(output.contains("/list --portfolios"));
         assertTrue(output.contains("/setmany --file FILEPATH"));
+        assertTrue(output.contains("/insights [OPTIONS]"));
         assertTrue(output.contains("/exit"));
     }
 
