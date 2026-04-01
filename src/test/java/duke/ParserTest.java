@@ -118,9 +118,13 @@ public class ParserTest {
     }
 
     @Test
-    void parseSet_missingType_throws() {
-        assertThrows(AppException.class, () ->
-                parser.parse("/set --ticker VOO --price 600"));
+    void parseSet_withoutType_parsesTickerLevelUpdate() throws AppException {
+        ParsedCommand command = parser.parse("/set --ticker VOO --price 600");
+
+        assertEquals(CommandType.SET, command.type());
+        assertNull(command.assetType());
+        assertEquals("VOO", command.ticker());
+        assertEquals(600.0, command.price());
     }
 
     @Test

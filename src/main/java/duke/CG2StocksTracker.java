@@ -259,13 +259,23 @@ public class CG2StocksTracker {
         String ticker = command.ticker();
         double price = command.price();
 
-        boolean updated = portfolio.setPriceForHolding(type, ticker, price);
-        if (!updated) {
-            throw new AppException("Holding not found: " + ticker + " (" + type.toDisplay() + ")");
+        if (type != null) {
+            boolean updated = portfolio.setPriceForHolding(type, ticker, price);
+            if (!updated) {
+                throw new AppException("Holding not found: " + ticker + " (" + type.toDisplay() + ")");
+            }
+
+            save();
+            ui.showMessage("Updated price: " + ticker + " (" + type.toDisplay() + ") = " + Ui.formatMoney(price));
+            return;
         }
 
+        int updatedCount = portfolio.setPriceForTicker(ticker, price);
+        if (updatedCount == 0) {
+            throw new AppException("Holding not found for ticker: " + ticker);
+        }
         save();
-        ui.showMessage("Updated price: " + ticker + " (" + type.toDisplay() + ") = " + Ui.formatMoney(price));
+        ui.showMessage("Updated price: " + ticker + " = " + Ui.formatMoney(price));
     }
 
     private void handleWatch(ParsedCommand command) throws AppException {

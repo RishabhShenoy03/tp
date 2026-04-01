@@ -107,13 +107,16 @@ Output contains:
 Set market price: /set
 Sets the latest market price for a specific holding (asset type + ticker). This does not sell anything.
 
-Format: /set --type TYPE --ticker TICKER --price PRICE
+Formats:
+- /set --ticker TICKER --price PRICE
+- /set --type TYPE --ticker TICKER --price PRICE
 
 Notes:
 
-`TYPE` must be one of `STOCK`, `ETF`, `BOND`.
 PRICE > 0.
-Updates only the matching `TYPE + TICKER` holding in the active portfolio.
+- Without `--type`: updates all holdings with matching ticker in the active portfolio.
+- With `--type`: updates only the matching `TYPE + TICKER` holding.
+- If `--type` is provided, `TYPE` must be one of `STOCK`, `ETF`, `BOND`.
 Used by /value for unrealized P&L and by /remove as fallback sell price.
 Latest saved prices are restored after restarting the application.
 
@@ -228,7 +231,7 @@ A: Older save files are supported. Legacy holding rows can still be loaded.
 - `/watch remove --type TYPE --ticker TICKER`
 - `/watch list`
 - `/watch buy --type TYPE --ticker TICKER --portfolio PORTFOLIO_NAME`
-- `/set --type TYPE --ticker TICKER --price PRICE`
+- `/set --ticker TICKER --price PRICE [--type TYPE]`
 - `/setmany --file FILEPATH`
 - `/value`
 - `/insights [--type stock|etf|bond] [--top N] [--chart]`

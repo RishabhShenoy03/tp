@@ -40,7 +40,7 @@ public class UiTest {
         assertTrue(output.contains("/watch remove --type TYPE --ticker TICKER"));
         assertTrue(output.contains("/watch list"));
         assertTrue(output.contains("/watch buy --type TYPE --ticker TICKER --portfolio NAME"));
-        assertTrue(output.contains("/set --type TYPE --ticker TICKER --price PRICE"));
+        assertTrue(output.contains("/set --ticker TICKER --price PRICE [--type TYPE]"));
         assertTrue(output.contains("/setmany --file FILEPATH"));
         assertTrue(output.contains("/insights [--type stock|etf|bond] [--top N] [--chart]"));
         assertTrue(output.contains("/exit"));

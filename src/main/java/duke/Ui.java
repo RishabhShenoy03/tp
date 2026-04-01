@@ -108,7 +108,7 @@ public class Ui {
                    /watch remove --type TYPE --ticker TICKER
                    /watch list
                    /watch buy --type TYPE --ticker TICKER --portfolio NAME
-                   /set --type TYPE --ticker TICKER --price PRICE
+                   /set --ticker TICKER --price PRICE [--type TYPE]
                    /setmany --file FILEPATH
                    /value
                    /insights [--type stock|etf|bond] [--top N] [--chart]

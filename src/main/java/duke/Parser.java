@@ -116,7 +116,7 @@ public class Parser {
     private ParsedCommand parseSet(List<String> tokens) throws AppException {
         Map<String, String> options = parseOptions(tokens);
         validateAllowedOptions(options, "--type", "--ticker", "--price");
-        AssetType type = parseAssetType(requireOption(options, "--type"));
+        AssetType type = options.containsKey("--type") ? parseAssetType(requireOption(options, "--type")) : null;
         String ticker = normaliseTicker(requireOption(options, "--ticker"));
         double price = parsePositiveDouble(requireOption(options, "--price"), "Price must be > 0");
         return new ParsedCommand(CommandType.SET, null, type, ticker, null, price,

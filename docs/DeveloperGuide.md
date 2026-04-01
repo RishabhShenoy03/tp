@@ -377,6 +377,7 @@ Its main classes are:
 - Commands like `/create` and `/use` call `PortfolioBook`
 
 - Commands that change holdings (`/add`, `/remove`, `/set`) first get the active `Portfolio` from `PortfolioBook`
+  (`/set` supports both ticker-level updates and type+ticker updates)
 
 - Watchlist commands (`/watch add`, `/watch remove`, `/watch list`, `/watch buy`) call `Watchlist`
 
@@ -430,7 +431,7 @@ Validates holding existence and quantity, decides effective sell price, computes
 
 - `setPriceForHolding(type, ticker, price)` updates one specific holding by type and ticker.
 
-- `setPriceForTicker(ticker, price)` is used for bulk ticker updates (for example `/setmany`).
+- `setPriceForTicker(ticker, price)` is used for ticker-level updates (for example `/setmany` and `/set` without type).
 
 - `getCurrentTotalValue()` and `getTotalUnrealizedPnl()` sum only holdings that currently have a price.
 
