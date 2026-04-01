@@ -32,13 +32,10 @@ public class Parser {
         case "remove" -> parseRemove(tokens);
         case "set" -> parseSet(tokens);
         case "setmany" -> parseSetMany(tokens);
-        case "value" -> new ParsedCommand(CommandType.VALUE, null, null, null, null, null,
-                null, null, null, null, null);
+        case "value" -> parseNoArgCommand(tokens, CommandType.VALUE);
         case "insights" -> parseInsights(tokens);
-        case "help" -> new ParsedCommand(CommandType.HELP, null, null, null, null, null,
-                null, null, null, null, null);
-        case "exit" -> new ParsedCommand(CommandType.EXIT, null, null, null, null, null,
-                null, null, null, null, null);
+        case "help" -> parseNoArgCommand(tokens, CommandType.HELP);
+        case "exit" -> parseNoArgCommand(tokens, CommandType.EXIT);
         default -> throw new AppException("Unknown command: " + commandWord);
         };
     }
@@ -67,6 +64,11 @@ public class Parser {
                     null, null, null, null, null);
         }
 
+        if (tokens.size() != 2) {
+            throw new AppException("Usage: /list or /list --stock or /list --etf or /list --bond "
+                    + "or /list --portfolios");
+        }
+
         String target = tokens.get(1).toLowerCase();
         if (target.equals("--stock") || target.equals("--etf") || target.equals("--bond")) {
             return new ParsedCommand(CommandType.LIST, null, null, null, null, null,
@@ -84,6 +86,7 @@ public class Parser {
 
     private ParsedCommand parseAdd(List<String> tokens) throws AppException {
         Map<String, String> options = parseOptions(tokens);
+        validateAllowedOptions(options, "--type", "--ticker", "--qty", "--price", "--brokerage", "--fx", "--platform");
         AssetType type = parseAssetType(requireOption(options, "--type"));
         String ticker = normaliseTicker(requireOption(options, "--ticker"));
         double qty = parsePositiveDouble(requireOption(options, "--qty"), "Quantity must be > 0");
@@ -97,6 +100,7 @@ public class Parser {
 
     private ParsedCommand parseRemove(List<String> tokens) throws AppException {
         Map<String, String> options = parseOptions(tokens);
+        validateAllowedOptions(options, "--type", "--ticker", "--qty", "--price", "--brokerage", "--fx", "--platform");
         AssetType type = parseAssetType(requireOption(options, "--type"));
         String ticker = normaliseTicker(requireOption(options, "--ticker"));
         Double qty = parseOptionalPositiveDouble(options.get("--qty"), "Quantity must be > 0");
@@ -110,6 +114,7 @@ public class Parser {
 
     private ParsedCommand parseSet(List<String> tokens) throws AppException {
         Map<String, String> options = parseOptions(tokens);
+        validateAllowedOptions(options, "--ticker", "--price");
         String ticker = normaliseTicker(requireOption(options, "--ticker"));
         double price = parsePositiveDouble(requireOption(options, "--price"), "Price must be > 0");
         return new ParsedCommand(CommandType.SET, null, null, ticker, null, price,
@@ -118,6 +123,7 @@ public class Parser {
 
     private ParsedCommand parseSetMany(List<String> tokens) throws AppException {
         Map<String, String> options = parseOptions(tokens);
+        validateAllowedOptions(options, "--file");
         String file = requireOption(options, "--file");
         Path filePath = Paths.get(file);
         return new ParsedCommand(CommandType.SET_MANY, null, null, null, null, null,
@@ -130,6 +136,14 @@ public class Parser {
                 null, null, null, rawOptions, null);
     }
 
+    private ParsedCommand parseNoArgCommand(List<String> tokens, CommandType commandType) throws AppException {
+        if (tokens.size() != 1) {
+            throw new AppException("Usage: /" + commandType.name().toLowerCase());
+        }
+        return new ParsedCommand(commandType, null, null, null, null, null,
+                null, null, null, null, null);
+    }
+
     private Map<String, String> parseOptions(List<String> tokens) throws AppException {
         Map<String, String> options = new HashMap<>();
 
@@ -139,10 +153,25 @@ public class Parser {
             }
             String key = tokens.get(i);
             String value = tokens.get(i + 1);
+            if (!key.startsWith("--")) {
+                throw new AppException("Invalid option: " + key);
+            }
+            if (options.containsKey(key.toLowerCase())) {
+                throw new AppException("Duplicate option: " + key.toLowerCase());
+            }
             options.put(key.toLowerCase(), value);
         }
 
         return options;
+    }
+
+    private void validateAllowedOptions(Map<String, String> options, String... allowedKeys) throws AppException {
+        List<String> allowed = List.of(allowedKeys);
+        for (String key : options.keySet()) {
+            if (!allowed.contains(key)) {
+                throw new AppException("Unknown option: " + key);
+            }
+        }
     }
 
     private String requireOption(Map<String, String> options, String key) throws AppException {

@@ -43,6 +43,30 @@ public class ParserTest {
     }
 
     @Test
+    void parseAdd_withUnknownOption_throws() {
+        assertThrows(AppException.class, () ->
+                parser.parse("/add --type STOCK --ticker VOO --qty 1 --price 300 --unknown 5"));
+    }
+
+    @Test
+    void parseAdd_withDuplicateOption_throws() {
+        assertThrows(AppException.class, () ->
+                parser.parse("/add --type STOCK --ticker VOO --ticker AAPL --qty 1 --price 300"));
+    }
+
+    @Test
+    void parseAdd_withBlankTicker_throws() {
+        assertThrows(AppException.class, () ->
+                parser.parse("/add --type STOCK --ticker \"\" --qty 1 --price 300"));
+    }
+
+    @Test
+    void parseAdd_withInvalidQuantity_throws() {
+        assertThrows(AppException.class, () ->
+                parser.parse("/add --type STOCK --ticker VOO --qty abc --price 300"));
+    }
+
+    @Test
     void parseRemove_withQtyAndPrice_parsesOptionalFields() throws AppException {
         ParsedCommand command = parser.parse(
                 "/remove --type STOCK --ticker VOO --qty 0.5 --price 600 --brokerage 1 --fx 2 --platform 3");
@@ -102,6 +126,29 @@ public class ParserTest {
     @Test
     void parseList_withHoldingsTarget_throws() {
         assertThrows(AppException.class, () -> parser.parse("/list holdings"));
+    }
+
+    @Test
+    void parseList_withExtraTrailingInput_throws() {
+        assertThrows(AppException.class, () -> parser.parse("/list --stock extra"));
+    }
+
+    @Test
+    void parseCreate_withQuotedName_parsesName() throws AppException {
+        ParsedCommand command = parser.parse("/create \"long term portfolio\"");
+
+        assertEquals(CommandType.CREATE, command.type());
+        assertEquals("long term portfolio", command.name());
+    }
+
+    @Test
+    void parseCreate_withUnclosedQuote_throws() {
+        assertThrows(AppException.class, () -> parser.parse("/create \"long term portfolio"));
+    }
+
+    @Test
+    void parseHelp_withExtraInput_throws() {
+        assertThrows(AppException.class, () -> parser.parse("/help now"));
     }
 
     @Test
