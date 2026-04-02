@@ -104,6 +104,7 @@ public class Ui {
                      Optional fees: --brokerage FEE --fx FEE --platform FEE
                    /remove --type TYPE --ticker TICKER
                      Optional fields: --qty QTY --price PRICE --brokerage FEE --fx FEE --platform FEE
+                   /watch add --type TYPE --ticker TICKER [--price PRICE]
                    /watch remove --type TYPE --ticker TICKER
                    /watch list
                    /watch buy --type TYPE --ticker TICKER --portfolio NAME
