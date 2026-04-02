@@ -2,16 +2,23 @@
 
 ## Introduction
 
-CG2 Stocks Tracker is a command-line portfolio tracker for recording holdings, updating market prices, and viewing realized/unrealized P&L.
+CG2StocksTracker is a command-line portfolio tracker for amateur investors who prefer fast typing workflows.
 
-Prices are entered manually via `/set` or `/setmany` (there is no automatic live market feed). The app also supports a watchlist for assets you plan to buy but do not yet own.
+It helps you:
 
-Application data, including portfolios, holdings, watchlist items, average buy prices, latest saved prices, and realized P&L, is automatically saved and restored across restarts.
+- create and switch portfolios
+- track holdings across stock, ETF, and bond assets
+- update market prices manually
+- monitor realized and unrealized profit/loss
+- keep a watchlist for planned buys
+
+CG2StocksTracker is designed to give a clear, accurate view of your holdings without spreadsheets or heavy trading platforms.
 
 ## Quick Start
 
 1. Ensure Java 17 or above is installed.
-2. Build and run from the project root:
+2. Open a terminal in the project root.
+3. Run the app:
 
 ```bash
 # Windows
@@ -21,29 +28,102 @@ gradlew.bat run
 ./gradlew run
 ```
 
-Use `/help` in the app to list all commands.
+4. Type commands and press Enter.
+5. Use `/help` to view available commands.
+
+## Command Format
+
+Notes about command syntax:
+
+- Commands must start with `/`.
+- Command words are case-insensitive. Example: `/LIST` is treated as `/list`.
+- Option keys are case-insensitive. Example: `--TYPE` is treated as `--type`.
+- Asset type values are case-insensitive: `stock`, `etf`, `bond`.
+- Tickers are normalized to uppercase in storage and display.
+- For options, each key must be followed by one value. Example: `--qty 10`.
+- Duplicate options in one command are rejected.
+- Unknown options are rejected.
+- Portfolio names can contain spaces when quoted. Example: `/create "Long Term"`.
+- Quantity and price fields that require positive values must be `> 0`.
+- Fee fields (`--brokerage`, `--fx`, `--platform`) must be `>= 0`.
+
+## Data Storage
+
+CG2StocksTracker stores data in plain text files under `data/`.
+
+- Main file: `data/CG2StocksTracker.txt`
+- Watchlist file: `data/CG2StocksTracker.txt.watchlist`
+
+Data is saved automatically after successful state-changing commands:
+
+- `/create`
+- `/add`
+- `/remove`
+- `/set`
+- `/setmany`
+- `/watch add`
+- `/watch remove`
+- `/watch buy`
+
+Read-only commands (`/list`, `/value`, `/insights`, `/help`) do not trigger save.
 
 ## Features
 
-### Create Portfolio: `/create`
+### View help: `/help`
 
-Creates a portfolio.
+Shows command usage summary.
 
-**Format:** `/create NAME`
+Format:
 
-**Example:** `/create retirement`
+`/help`
 
-### Switch Active Portfolio: `/use`
+### Exit application: `/exit`
+
+Exits the application.
+
+Format:
+
+`/exit`
+
+### Create portfolio: `/create`
+
+Creates a portfolio by name.
+
+Format:
+
+`/create NAME`
+
+Examples:
+
+- `/create longterm`
+- `/create "Long Term Portfolio"`
+
+Expected result:
+
+- Portfolio is created.
+- If it is the first portfolio, it becomes active automatically.
+
+### Switch active portfolio: `/use`
 
 Switches the active portfolio.
 
-**Format:** `/use NAME`
+Format:
 
-**Example:** `/use retirement`
+`/use NAME`
 
-### List Portfolios/Holdings: `/list`
+Example:
 
-**Formats:**
+- `/use longterm`
+
+Expected result:
+
+- Active portfolio changes to `NAME`.
+
+### List holdings or portfolios: `/list`
+
+Shows holdings in the active portfolio, with optional filters.
+
+Formats:
 
 - `/list`
 - `/list --stock`
@@ -51,217 +131,231 @@ Switches the active portfolio.
 - `/list --bond`
 - `/list --portfolios`
 
-**Notes:**
+Notes:
 
-- `/list` shows all holdings in the active portfolio.
-- Type filters show only that asset type in the same tabular format.
-- `/list --portfolios` shows each portfolio's realized and unrealised P&L in alphabetical order.
+- `/list` shows all holdings in active portfolio.
+- If no active portfolio exists, `/list` shows portfolio names.
+- Type-filtered list keeps the same table style but only one asset type.
+- `/list --portfolios` shows portfolio-level realized and unrealized P&L in alphabetical order.
 
-### Add Holding: `/add`
+### Add holding: `/add`
 
-Adds units to a holding and requires purchase price per unit.
+Adds quantity to a holding in the active portfolio.
 
-**Format:** `/add --type TYPE --ticker TICKER --qty QTY --price PRICE`
+Format:
 
-**Notes:**
+`/add --type TYPE --ticker TICKER --qty QTY --price PRICE [--brokerage FEE] [--fx FEE] [--platform FEE]`
 
-- `TYPE` must be one of `STOCK`, `ETF`, `BOND`.
-- `QTY > 0`, `PRICE > 0`.
-- Optional fee fields: `--brokerage FEE`, `--fx FEE`, `--platform FEE`.
-- Fee values (when provided) must be `>= 0`.
-- If holding already exists, quantity is increased and average buy price is recalculated using weighted average.
+Required:
 
-**Example:** `/add --type STOCK --ticker VOO --qty 1 --price 300`
+- `TYPE`: `stock`, `etf`, or `bond`
+- `TICKER`: asset ticker
+- `QTY > 0`
+- `PRICE > 0`
 
-**Example with fees:**
+Optional fees:
 
-`/add --type STOCK --ticker VOO --qty 1 --price 300 --brokerage 1.50 --fx 2.00 --platform 0.50`
+- `--brokerage FEE`
+- `--fx FEE`
+- `--platform FEE`
 
-**Output contains:**
+Fee values must be `>= 0`.
 
-- Added/updated holding details.
-- Quantity.
-- Average buy price.
+Behavior:
 
-### Remove Holding Units (Partial or Full): `/remove`
+- If holding does not exist: a new holding is created.
+- If holding exists: quantity increases and average buy price is recalculated using weighted average cost.
+- Buy-side fees are included in cost basis.
+
+Examples:
+
+- `/add --type stock --ticker VOO --qty 1 --price 300`
+- `/add --type stock --ticker VOO --qty 2 --price 310 --brokerage 1.5 --fx 2.0`
+
+### Remove holding units: `/remove`
 
 Sells part or all of a holding and records realized P&L.
 
-**Format:** `/remove --type TYPE --ticker TICKER [--qty QTY] [--price PRICE]`
+Format:
 
-**Optional behavior:**
+`/remove --type TYPE --ticker TICKER [--qty QTY] [--price PRICE] [--brokerage FEE] [--fx FEE] [--platform FEE]`
 
-- If `--qty` is omitted: sell all units of the holding.
-- If `--price` is omitted: use the holding's saved price (from `/set` or the holding's stored price).
-- If both are omitted: sell all units using the holding's saved price.
-- Optional fee fields: `--brokerage FEE`, `--fx FEE`, `--platform FEE`.
+Behavior rules:
 
-**Notes:**
+- If `--qty` is omitted: sell all units.
+- If `--price` is omitted: use holding's saved last price.
+- If no `--price` and no saved last price: command fails.
+- Sell-side fees are deducted from realized P&L.
 
-- If no saved price exists, provide `--price`.
-- `QTY` (when provided) must be `> 0` and not exceed current holding quantity.
-- Fee values (when provided) must be `>= 0`.
-- If `/set` was never used for a holding, remove can still use the holding's stored price.
+Validation:
 
-**Examples:**
+- `QTY` (if provided) must be `> 0` and cannot exceed current quantity.
+- `PRICE` (if provided) must be `> 0`.
+- Fee values (if provided) must be `>= 0`.
 
-- Sell specific qty at explicit price:
-  `/remove --type STOCK --ticker VOO --qty 0.5 --price 620`
-- Sell specific qty at last `/set` price:
-  `/remove --type STOCK --ticker VOO --qty 0.5`
-- Sell all at explicit price:
-  `/remove --type STOCK --ticker VOO --price 590`
-- Sell all at last `/set` price:
-  `/remove --type STOCK --ticker VOO`
-- Sell with fees:
-  `/remove --type STOCK --ticker VOO --qty 0.5 --price 620 --brokerage 1.50 --platform 0.50`
+Examples:
 
-**Output contains:**
+- `/remove --type stock --ticker VOO --qty 0.5 --price 620`
+- `/remove --type stock --ticker VOO --qty 0.5`
+- `/remove --type stock --ticker VOO --price 590`
+- `/remove --type stock --ticker VOO`
 
-- Sold quantity.
-- Effective sell price used.
-- Total fees used for that sale (when non-zero).
-- Realized P&L for that sale (signed `+` / `-`).
+### Set market price: `/set`
 
-### Set Market Price: `/set`
+Sets market price for holdings. This does not buy or sell.
 
-Sets the latest market price for holdings. This does not sell anything.
-
-**Formats:**
+Formats:
 
 - `/set --ticker TICKER --price PRICE`
 - `/set --type TYPE --ticker TICKER --price PRICE`
 
-**Notes:**
+Behavior:
 
-- `PRICE > 0`.
-- Without `--type`: updates all holdings with matching ticker in the active portfolio.
-- With `--type`: updates only the matching `TYPE + TICKER` holding.
-- If `--type` is provided, `TYPE` must be one of `STOCK`, `ETF`, `BOND`.
-- Used by `/value` for unrealized P&L and by `/remove` as fallback sell price.
-- Latest saved prices are restored after restarting the application.
+- Without `--type`: update all holdings in active portfolio with matching ticker.
+- With `--type`: update only one matching holding by `(type, ticker)`.
 
-**Example:** `/set --type STOCK --ticker VOO --price 600`
+Validation:
 
-**Output contains:**
+- `PRICE > 0`
+- If no holding matches target, command fails.
 
-- Price update confirmation only.
+Examples:
 
-### Manage Watchlist: `/watch`
+- `/set --ticker VOO --price 600`
+- `/set --type stock --ticker VOO --price 600`
 
-Tracks assets you may want to buy later.
+### Manage watchlist: `/watch`
 
-**Formats:**
+Tracks assets you may buy later.
+
+Formats:
 
 - `/watch add --type TYPE --ticker TICKER [--price PRICE]`
 - `/watch remove --type TYPE --ticker TICKER`
 - `/watch list`
 - `/watch buy --type TYPE --ticker TICKER --portfolio PORTFOLIO_NAME`
 
-**Notes:**
+Notes:
 
-- `TYPE` must be one of `STOCK`, `ETF`, `BOND`.
-- `/watch add` can store an item with or without a price.
-- `/watch buy` only works if that watchlist item already has a price.
-- `/watch buy` requires `--portfolio` and buys into that portfolio.
-- `/watch buy` buys 1 unit at the watchlist price and removes that item from the watchlist.
+- `TYPE` must be `stock`, `etf`, or `bond`.
+- Watchlist keys are `(type, ticker)`; duplicates are rejected.
+- `/watch buy` buys exactly 1 unit at watchlist price, into target portfolio, then removes item from watchlist.
+- `/watch buy` fails if watchlist item has no price.
 
-### Bulk Set Prices from CSV: `/setmany`
+Examples:
 
-Loads prices from CSV into active portfolio.
+- `/watch add --type etf --ticker QQQ --price 450`
+- `/watch list`
+- `/watch buy --type etf --ticker QQQ --portfolio longterm`
 
-**Format:** `/setmany --file FILEPATH`
+### Bulk set prices from CSV: `/setmany`
 
-CSV header must be: `ticker,price`
+Loads ticker prices from CSV and updates matching holdings in active portfolio.
 
-**Notes:**
+Format:
 
-- Header matching is case-insensitive.
-- Invalid rows are reported as failed rows; valid rows are still processed.
+`/setmany --file FILEPATH`
 
-### View Valuation and P&L: `/value`
+CSV requirements:
 
-Shows portfolio-level current total value, realized P&L, and unrealized P&L by holding.
+- Header must be `ticker,price` (case-insensitive compare after lowercasing).
+- Each data row must have exactly 2 columns.
+- `price` must be a positive number.
 
-**Format:** `/value`
+Behavior:
 
-**Output contains:**
+- Valid rows are processed even if some rows fail.
+- Output shows success count, failure count, and row-level failure reasons.
 
-- Current total value: sum of `quantity * current unit price` across holdings in the active portfolio.
-- Realized P&L: cumulative P&L from completed sells (positive or negative).
-- Unrealised P&L by holding: one row per holding.
-- Total unrealised P&L: sum across holdings.
+Example:
 
-**Example scenario:**
+- `/setmany --file text-ui-test/prices.csv`
 
-```text
-/add --type STOCK --ticker VOO --qty 1 --price 300
-/set --type STOCK --ticker VOO --price 600
-/value
-```
+### View portfolio value and P&L: `/value`
 
-**Expected result summary:**
+Shows portfolio-level valuation and P&L summary.
 
-- Realized P&L = `+0.00` (nothing sold yet)
-- Unrealized P&L for VOO = `+300.00`
-- Total unrealized P&L = `+300.00`
+Format:
 
-Unrealized P&L is calculated using:
+`/value`
 
-`(last price - average buy price) × quantity`
+Output includes:
 
-All values remain consistent after restarting the application because the required storage fields are saved and restored.
+- Current total value (priced holdings only)
+- Portfolio realized P&L
+- Per-holding unrealized P&L
+- Total unrealized P&L
 
-### Insights View: `/insights`
+Formula:
 
-Shows per-holding insights (including optional filters and top gainers).
+`unrealized P&L = (lastPrice - averageBuyPrice) x quantity`
 
-**Format:** `/insights [--type stock|etf|bond] [--top N] [--chart]`
+### View insights: `/insights`
 
-**Notes:**
+Shows holding-level performance insights, with optional filters and chart.
 
-- `--top N` shows top gainers only (holdings with positive unrealized P&L).
-- `--chart` adds an ASCII diverging chart (loss on the left, gain on the right).
-- Chart bars are scaled by unrealized percentage, not raw dollar P&L.
-- Chart scale is relative to the largest absolute unrealized percentage in the current view.
-- Invalid or duplicate options are rejected with a usage/error message.
+Format:
 
-**Examples:**
+`/insights [--type stock|etf|bond] [--top N] [--chart]`
+
+Option behavior:
+
+- `--type` filters to one asset type.
+- `--top N` shows top gainers only (positive unrealized P&L), sorted descending.
+- `--chart` adds ASCII diverging chart (loss left, gain right).
+
+Validation:
+
+- `N` must be a positive integer.
+- Duplicate options are rejected.
+- Unsupported options are rejected.
+
+Examples:
 
 - `/insights`
 - `/insights --type stock`
 - `/insights --top 5`
 - `/insights --type etf --top 3 --chart`
 
-### Help: `/help`
+## Error Handling
 
-Shows the command list.
+Common reasons commands fail:
 
-### Exit: `/exit`
+- command does not start with `/`
+- unknown command word
+- missing required options
+- invalid option key
+- duplicate option key
+- invalid asset type
+- invalid quantity/price/fee values
+- no active portfolio when one is required
+- target holding or portfolio not found
+- missing sell price context for `/remove`
+- invalid CSV file path, header, or row format for `/setmany`
 
-Exits the application.
+When a command fails, the app prints an error and waits for the next command.
 
 ## FAQ
 
-**Q: Why does `/remove` fail when I omit `--price`?**
+**Q: Do I get live market prices automatically?**
 
-A: If you omit `--price`, the app uses the holding's saved price. If no saved price is available, provide `--price`.
+A: No. Prices are set manually via `/set` or `/setmany`.
 
-**Q: How is average buy price calculated?**
+**Q: Why did `/remove` fail without `--price`?**
 
-A: Weighted average cost basis is used. If fees are provided for `/add`, they are included in purchase cost before the new average is computed.
+A: If you omit `--price`, the app uses saved last price. If no saved last price exists, provide `--price`.
 
-**Q: Will my data persist after I exit the app?**
+**Q: How is average buy price computed?**
 
-A: Yes. Portfolios, holdings, average buy prices, latest saved prices, and realized P&L are automatically saved and restored when the application restarts.
+A: Weighted average cost is used. Buy-side fees are included in cost basis.
 
-**Q: What happens to older save files?**
+**Q: Are fees used in P&L calculations?**
 
-A: Older save files are supported. Legacy holding rows can still be loaded.
+A: Yes. Buy fees increase cost basis; sell fees reduce realized P&L.
 
-**Q: Why can a smaller dollar gain look larger in the `/insights --chart` output?**
+**Q: Is data persistent across restarts?**
 
-A: The chart is percentage-based and normalized to the largest absolute unrealized percentage in the current view. This is intentional so positions of different sizes remain comparable in relative return terms.
+A: Yes. Portfolio and watchlist data are loaded from storage files on startup.
 
 ## Command Summary
 
@@ -274,11 +368,12 @@ A: The chart is percentage-based and normalized to the largest absolute unrealiz
 - `/list --portfolios`
 - `/add --type TYPE --ticker TICKER --qty QTY --price PRICE [--brokerage FEE] [--fx FEE] [--platform FEE]`
 - `/remove --type TYPE --ticker TICKER [--qty QTY] [--price PRICE] [--brokerage FEE] [--fx FEE] [--platform FEE]`
+- `/set --ticker TICKER --price PRICE`
+- `/set --type TYPE --ticker TICKER --price PRICE`
 - `/watch add --type TYPE --ticker TICKER [--price PRICE]`
 - `/watch remove --type TYPE --ticker TICKER`
 - `/watch list`
 - `/watch buy --type TYPE --ticker TICKER --portfolio PORTFOLIO_NAME`
-- `/set --ticker TICKER --price PRICE [--type TYPE]`
 - `/setmany --file FILEPATH`
 - `/value`
 - `/insights [--type stock|etf|bond] [--top N] [--chart]`

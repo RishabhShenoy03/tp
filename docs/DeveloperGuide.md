@@ -2,1349 +2,772 @@
 
 ## Acknowledgements
 
-{list here sources of all reused/adapted ideas, code, documentation, and third-party libraries -- include links to the original source as well}
+- SE-EDU AddressBook Level-3 architecture concepts: https://se-education.org/addressbook-level3/
+- CS2113 project conventions and tooling tutorials: https://se-education.org/
 
-## Design & implementation
+## Product Scope
 
+### Target user profile
 
+CG2StocksTracker targets typing-oriented amateur investors who want a fast command-line workflow to manage personal investment holdings.
 
-# Developer Guide
+Typical user characteristics:
 
+- comfortable with terminal/CLI interaction
+- wants lightweight tracking without spreadsheet maintenance
+- tracks stocks, ETFs, and bonds in one place
+- needs quick portfolio snapshots and simple performance views
+
+### Value proposition
+
+Make informed investment decisions with clarity and confidence.
+
+CG2StocksTracker helps amateur investors understand the real, current value of their assets and anticipate future market trends using clear analysis and actionable insights.
+
+CG2StocksTracker helps typing-oriented amateur investors maintain a clear, accurate view of their personal investment holdings through a command-line interface, enabling quick portfolio reviews and basic analysis without the complexity of spreadsheets or heavyweight trading platforms.
 
 ## Design
 
 ### Architecture
 
-The Architecture Diagram above gives an overview of the main components in the application and how they interact.
+The application follows a layered command pipeline:
 
-The application consists of four main components:
+1. `Ui` reads command text and displays responses.
+2. `Parser` converts raw input to `ParsedCommand`.
+3. `CG2StocksTracker` dispatches execution by `CommandType`.
+4. Model classes (`PortfolioBook`, `Portfolio`, `Holding`, `Watchlist`) perform business logic.
+5. `Storage` persists state after successful state-changing operations.
 
-- **UI**: Handles user input and output
+[DIAGRAM PLACEHOLDER: docs/diagrams/architecture-overview-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/command-dispatch-sequence.puml]
 
-- **Logic**: Executes commands
+### Core class responsibilities
 
-- **Model**: Stores application data in memory
+- `CG2StocksTracker`: application coordinator and command dispatcher.
+- `Parser`: command syntax validation and typed command construction.
+- `ParsedCommand`: immutable command DTO with optional fields and fee aggregation.
+- `PortfolioBook`: multi-portfolio registry and active-portfolio context.
+- `Portfolio`: holding lifecycle, valuation, and realized/unrealized P&L aggregation.
+- `Holding`: quantity, cost basis, last price, and per-holding P&L logic.
+- `Watchlist`: watch candidates and buy-into-portfolio operation.
+- `Storage`: persistence of portfolios/watchlist and CSV price import for `/setmany`.
+- `Ui`: user-facing formatting for command outputs and errors.
 
-- **Storage**: Reads and writes data to disk
+## Command Features
 
+## `/create` - Create Portfolio
 
-The `CG2StocksTracker` class acts as the main entry point of the application. It is responsible for initializing these components and coordinating the execution of commands.
+### High-level design
 
----
+Creates a new named portfolio in `PortfolioBook`. If no active portfolio exists, the created portfolio becomes active.
 
-### How the components interact
+### Component-level implementation
 
-When a user enters a command, the flow is as follows:
+- Parsing: `Parser.parseCreate(...)` validates name presence.
+- Execution: `CG2StocksTracker.handleCreate(...)` calls `portfolioBook.createPortfolio(name)`.
+- Persistence: state is saved via `save()`.
 
-1. The command is read by `Ui`
+### Class responsibilities
 
-2. The command string is passed to `CG2StocksTracker`
+- `Parser`: enforces `/create NAME` format.
+- `PortfolioBook`: enforces uniqueness and first-active behavior.
+- `Ui`: shows created and active portfolio messages.
 
-3. `Parser` parses the command and returns a `ParsedCommand`
+### Command execution flow
 
-4. `CG2StocksTracker` executes the command using the Model
+1. Parse input into `ParsedCommand(type=CREATE, name=...)`.
+2. Create portfolio in model.
+3. Persist updated state.
+4. Print success output.
 
-5. If the command modifies data, `Storage` saves the updated state
+[DIAGRAM PLACEHOLDER: docs/diagrams/create-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/create-command-sequence.puml]
 
-6. The result is returned to `Ui` for display
+### Error handling and validation
 
+- Missing name -> parser usage error.
+- Duplicate name -> `AppException` from `PortfolioBook`.
 
----
+### Alternatives considered
 
-### Architecture Diagram
+- Auto-generate portfolio IDs instead of user-provided names.
+- Rejected: names are meaningful for CLI workflows and easier to remember.
 
-```plantuml
-@startuml
-title Architecture Diagram
+### Current limitations
 
-package UI {
-    class Ui
-}
+- No rename command for existing portfolios.
 
-package Logic {
-    class CG2StocksTracker
-    class Parser
-    class ParsedCommand
-}
+### Possible future improvements
 
-package Model {
-    class PortfolioBook
-    class Portfolio
-    class Holding
-    class Watchlist
-    class WatchlistItem
-}
+- Add `/rename` for portfolio names.
 
-package Storage {
-    class Storage
-}
+## `/use` - Switch Active Portfolio
 
-Ui --> CG2StocksTracker
-CG2StocksTracker --> Parser
-Parser --> ParsedCommand
+### High-level design
 
-CG2StocksTracker --> PortfolioBook
-PortfolioBook --> Portfolio
-Portfolio --> Holding
-CG2StocksTracker --> Watchlist
-Watchlist --> WatchlistItem
+Sets active portfolio context used by most holdings commands.
 
-CG2StocksTracker --> Storage
-@enduml
-```
+### Component-level implementation
 
----
+- Parsing: `Parser.parseUse(...)`.
+- Execution: `CG2StocksTracker.handleUse(...)` -> `portfolioBook.usePortfolio(name)`.
 
-## UI Component
+### Class responsibilities
 
-### Overview
+- `PortfolioBook`: validates target existence and stores active name.
+- `Ui`: confirms active portfolio.
 
-The API of this component is specified in `Ui.java`.
+### Command execution flow
 
-The `Ui` component is responsible for interacting with the user. It reads input commands and displays results or error messages.
+1. Parse `/use NAME`.
+2. Validate portfolio exists.
+3. Set active context.
+4. Return confirmation.
 
----
+[DIAGRAM PLACEHOLDER: docs/diagrams/use-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/use-command-sequence.puml]
 
-### How the UI works
+### Error handling and validation
 
-- `Ui` reads user input as a string
+- Missing name -> parser usage error.
+- Unknown name -> `Portfolio not found`.
 
-- It forwards the input to `CG2StocksTracker`
+### Alternatives considered
 
-- It displays the output returned by the application
+- Implicitly create on `/use` miss.
+- Rejected: hides typos and weakens explicit portfolio management.
 
+### Current limitations
 
-The UI does not perform any parsing or business logic.
+- No command to show only current active portfolio quickly.
 
----
+### Possible future improvements
 
-## Logic Component
+- Add `/active` command.
 
-### Overview
+## `/list` - List Holdings or Portfolio Summaries
 
-The command parsing subsystem is responsible for translating raw user input strings into structured, type-safe command objects that the rest of the application can act upon. It is composed of three tightly related classes: `CommandType`, `ParsedCommand`, and `Parser`. Together, they form a clean separation between the *syntax* of a command (what the user typed), the *semantics* of a command (what it means), and the *dispatch* of a command (what should happen).
+### High-level design
 
----
+Supports both holdings listing and portfolio summary listing.
 
-### Architecture-Level Description
+Supported variants:
 
-At the architecture level, the parsing subsystem sits between the user interface layer and the application logic layer. The main application loop in `CG2StocksTracker` reads a raw string from `Ui`, hands it to `Parser`, and receives back a `ParsedCommand`. The application then switches on the `CommandType` contained within that `ParsedCommand` to decide which handler to invoke.
+- `/list`
+- `/list --stock`
+- `/list --etf`
+- `/list --bond`
+- `/list --portfolios`
 
-This design keeps the application loop simple: it never inspects raw strings itself, and it never needs to know how options are encoded. All of that knowledge is encapsulated in `Parser`.
+### Component-level implementation
 
----
+- Parsing: `Parser.parseList(...)` restricts allowed targets.
+- Execution: `CG2StocksTracker.handleList(...)` branches on `listTarget`.
+- Rendering: `Ui.showHoldings(...)`, `Ui.showPortfolioSummaries(...)`, `Ui.showPortfolios(...)`.
 
-### Component-Level Description
+### Class responsibilities
 
-#### `CommandType` — The Command Vocabulary
+- `Parser`: validates argument count and target option.
+- `CG2StocksTracker`: determines variant behavior.
+- `Ui`: formats output list and totals.
 
-`CommandType` is a Java `enum` that enumerates every command the application understands:
+### Command execution flow
 
-```
-CREATE, USE, LIST, ADD, REMOVE, WATCH, SET, SET_MANY, VALUE, INSIGHTS, HELP, EXIT
-```
+1. Parse list target or empty target.
+2. Route by variant:
+   - `--portfolios` -> portfolio summary view.
+   - type filter -> filtered holdings.
+   - default -> holdings for active portfolio, or portfolio names if none active.
 
-Its role is to serve as the single authoritative list of valid commands. Using an enum instead of raw strings eliminates
-an entire class of bugs: a typo like `"CREAT"` is caught at compile time rather than causing a silent mismatch at
-runtime. It also makes exhaustive `switch` statements possible — the compiler can warn if a new `CommandType` value is
-added but not handled.
+[DIAGRAM PLACEHOLDER: docs/diagrams/list-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/list-command-sequence.puml]
 
-**Design decision:** The enum is kept intentionally minimal — it carries no behaviour, no labels, and no metadata. This
-keeps the command vocabulary cleanly decoupled from parsing logic and from execution logic. An alternative considered
-was storing a display name or usage string inside the enum. This was rejected because it would mix concerns; usage
-strings belong in `Ui`.
+### Error handling and validation
 
----
+- Unsupported option -> usage error.
+- Active portfolio required for filtered holdings -> model exception.
 
-#### `ParsedCommand` — The Data Transfer Object
+### Alternatives considered
 
-`ParsedCommand` is a Java `record` that carries all the information the application needs to execute a command:
+- Separate commands (`/listholdings`, `/listportfolios`).
+- Rejected: one command with variants is simpler for users.
 
-```java
-public record ParsedCommand(
-    CommandType type,
-    String name,
-    AssetType assetType,
-    String ticker,
-    Double quantity,
-    Double price,
-    Double brokerageFee,
-    Double fxFee,
-    Double platformFee,
-    String listTarget,
-    Path filePath
-)
-```
+### Current limitations
 
-Records in Java are implicitly immutable and generate `equals`, `hashCode`, and `toString` automatically. This makes
-`ParsedCommand` safe to pass around without defensive copying.
+- No paging/sorting options in holdings list.
 
-Not every field is populated for every command. For example, a `VALUE` command needs no fields beyond `type`, while an
-`ADD` command needs `assetType`, `ticker`, `quantity`, and may optionally include fee fields. Fields that are not
-applicable for a given command are simply `null`.
+### Possible future improvements
 
-`ParsedCommand` also exposes `totalFees()`, which combines `brokerageFee`, `fxFee`, and `platformFee` into one value
-before command execution.
+- Add sorting and pagination flags.
 
-**Design decision:** A single record with nullable fields was chosen over a class hierarchy (e.g. a `CreateCommand
-extends ParsedCommand` pattern). The hierarchy approach would have been more type-safe in principle, but for a CLI
-application of this scale, the added boilerplate outweighs the benefit. The flat record is simpler to construct, simpler
-to test, and straightforward to extend when new commands are added.
+## `/add` - Add Holding
 
-**Alternative considered:** Using `Optional<T>` instead of nullable fields. This was considered to make the "may be
-absent" contract explicit, but Java records with `Optional` fields carry more syntactic overhead at construction sites
-(e.g., `Optional.of(...)`, `Optional.empty()`) which clutters the `Parser` code without adding meaningful safety at this
-scale.
+### High-level design
 
----
+Adds units to an existing holding or creates a new holding in active portfolio.
 
-#### `Parser` — The Core Logic
+### Component-level implementation
 
-`Parser` is a stateless class with a single public entry point:
+- Parsing: `Parser.parseAdd(...)` validates required options and optional fees.
+- Execution: `CG2StocksTracker.handleAdd(...)` -> `Portfolio.addHolding(...)`.
+- Cost basis: `Holding.addQuantity(...)` computes weighted average with fees.
 
-```java
-public ParsedCommand parse(String input) throws AppException
-```
+### Class responsibilities
 
-Internally, parsing proceeds in two stages: **tokenisation** and **command-specific parsing**.
+- `Parser`: validates option keys and numeric constraints.
+- `Portfolio`: manages holding map and add behavior.
+- `Holding`: stores quantity, average buy price, and market price.
 
-##### Stage 1: Tokenisation
+### Command execution flow
 
-The `tokenise` method splits the input string on whitespace, with support for double-quoted tokens. This allows
-arguments containing spaces (such as a portfolio name like `"My Portfolio"`) to be passed as a single token.
+1. Parse type/ticker/qty/price and fee fields.
+2. Aggregate fees using `ParsedCommand.totalFees()`.
+3. Add to active portfolio.
+4. Save state.
+5. Show added/updated output.
 
-The tokeniser iterates character by character, tracking an `inQuotes` boolean flag. When the flag is active, whitespace
-is treated as a regular character rather than a delimiter. An unclosed quote is detected at the end of the loop and
-raises an `AppException`.
+[DIAGRAM PLACEHOLDER: docs/diagrams/add-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/add-command-sequence.puml]
 
-For example, the input `/add --type stock --ticker "BRK A" --qty 10` produces the token list `["/add", "--type",
-"stock", "--ticker", "BRK A", "--qty", "10"]`.
+### Error handling and validation
 
-**Design decision:** A hand-written character-by-character tokeniser was used rather than `String.split()` or a regular
-expression, because neither handles quoted tokens natively without significant complexity. A proper lexer library was
-not used because the grammar is simple enough that the overhead of a dependency is not justified.
+- Missing required options -> parser error.
+- Invalid type/qty/price/fees -> parser or model error.
+- No active portfolio -> execution error.
 
-##### Stage 2: Command-Specific Parsing
+### Alternatives considered
 
-After tokenisation, the first token (the command word, e.g. `/add`) is extracted and matched using a `switch`
-expression. Each `case` delegates to a dedicated private method:
+- Store each buy as separate transaction instead of aggregate holding.
+- Rejected: increases complexity for current project scope.
 
-```java
-return switch (commandWord) {
-    case "create" -> parseCreate(tokens);
-    case "add"    -> parseAdd(tokens);
-    case "set"    -> parseSet(tokens);
-    // ...
-};
-```
+### Current limitations
 
-Commands that accept named options (e.g. `--type`, `--ticker`, `--qty`) go through `parseOptions`, which reads tokens in
-key-value pairs and populates a `Map<String, String>`. The helper `requireOption` then asserts that a required key is
-present, throwing a descriptive `AppException` if it is missing.
+- No transaction history view; only aggregate holding state is retained.
 
-`parseOptions` also rejects duplicate options (for example `--top 3 --top 5`) and malformed option tokens.
-For command-specific safety, each parse method validates allowed option keys (e.g. `/add` rejects unknown flags).
+### Possible future improvements
 
-For `/add` and `/remove`, the parser also reads optional fee fields such as `--brokerage`, `--fx`, and `--platform`.
+- Add transaction ledger model and `/trades` command.
 
-For `/watch`, parsing is action-based (`add`, `remove`, `list`, `buy`) and each action has its own allowed option set.
+## `/remove` - Remove Holding Units
 
-For `/insights`, raw options are carried in `ParsedCommand.listTarget()` and interpreted by `CG2StocksTracker`
-(`--type`, `--top`, `--chart`) before invoking `Ui.showInsightsTable(...)`.
+### High-level design
 
-Two additional helpers enforce type safety: `parsePositiveDouble` parses a string to a `double` and asserts it is
-strictly positive (used for `--qty`, `--price`, and fee fields), while `normaliseTicker` uppercases the ticker string so
-that `aapl` and `AAPL` are treated identically regardless of how the user typed them.
+Sells part or all of a holding and records realized P&L.
 
----
+### Component-level implementation
 
-### Sequence Diagram: Parsing a `/add` Command
+- Parsing: `Parser.parseRemove(...)` validates options.
+- Execution: `CG2StocksTracker.handleRemove(...)` -> `Portfolio.removeHolding(...)`.
+- Realized P&L: `Holding.removeQuantity(...)` computes delta using average buy price and fees.
 
-The following sequence diagram illustrates what happens when the user types `/add --type stock --ticker AAPL --qty 10`.
+### Class responsibilities
 
-<!-- INSERT SEQUENCE DIAGRAM 1 HERE -->
+- `Portfolio`: chooses effective sell price and updates cumulative realized P&L.
+- `Holding`: adjusts quantity and computes realized delta.
+- `Ui`: prints sold quantity, sell price, fees, and realized P&L.
 
----
+### Command execution flow
 
-### Sequence Diagram: Handling an Invalid Command
+1. Parse optional quantity/price/fees.
+2. Resolve quantity (specific or full).
+3. Resolve sell price (`--price` or saved `lastPrice`).
+4. Remove quantity and compute realized delta.
+5. Remove holding if quantity reaches zero.
+6. Save state and print result.
 
-The following shows what happens when the user enters a malformed command, such as `/add --type stock` (missing
-`--ticker` and `--qty`). The `AppException` thrown by `requireOption` propagates back to `CG2StocksTracker.run()`, which
-catches it and routes it to `Ui.showError()`. This ensures that all user-facing errors are displayed consistently
-regardless of which stage of parsing failed.
+[DIAGRAM PLACEHOLDER: docs/diagrams/remove-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/remove-command-sequence.puml]
 
-<!-- INSERT SEQUENCE DIAGRAM 2 HERE -->
+### Error handling and validation
 
----
+- Holding not found.
+- Invalid quantity to remove.
+- Price missing when no saved last price exists.
 
-### Error Handling Strategy
+### Alternatives considered
 
-All parsing errors are reported via `AppException`, a checked application-specific exception. This was a deliberate
-choice over using unchecked exceptions: callers are forced by the compiler to handle or propagate the exception, making
-it impossible to accidentally swallow a parse error. The messages in `AppException` are written in plain English and
-include usage hints (e.g., `"Usage: /add --type TYPE --ticker TICKER --qty QTY"`), making them suitable for direct
-display to the user.
+- Require explicit `--price` always.
+- Rejected: reduces usability when prices were already set.
 
----
+### Current limitations
 
-### Alternatives Considered
+- No tax-lot methods (FIFO/LIFO/specific lot); uses average cost.
 
-| Design Choice | Chosen Approach | Alternative | Reason for Choice |
-|---|---|---|---|
-| Command representation | `enum CommandType` | String constants | Compile-time safety, exhaustive switch |
-| Parsed data container | Java `record` (flat) | Class hierarchy per command type | Simpler code, adequate for scale |
-| Optional fields | Nullable fields | `Optional<T>` fields | Less construction-site boilerplate |
-| Tokenisation | Hand-written char loop | `String.split` / regex | Handles quoted tokens naturally |
-| Error signalling | Checked `AppException` | Unchecked `RuntimeException` | Forces callers to handle errors |
+### Possible future improvements
 
----
+- Add selectable tax-lot accounting modes.
 
-### Summary
+## `/set` - Set Market Price
 
-The parsing subsystem deliberately keeps each class narrowly focused. `CommandType` is the vocabulary. `ParsedCommand`
-is the data carrier. `Parser` is the translation logic. No class bleeds into the other's responsibility. This separation
-means that adding a new command in the future requires only: adding a value to `CommandType`, adding a `case` to
-`Parser.parse()` with a corresponding `parseX()` method, and adding a handler in `CG2StocksTracker.execute()`. No other
-files need to change.
+### High-level design
 
-### Class Diagram
+Updates last known prices used for valuation and remove fallback pricing.
 
-```plantuml
-@startuml
-class CG2StocksTracker {
-    +run()
-    +execute(String)
-}
+Variants:
 
-class Parser {
-    +parse(String)
-}
+- typed update: `/set --type TYPE --ticker TICKER --price PRICE`
+- ticker-wide update: `/set --ticker TICKER --price PRICE`
 
-class ParsedCommand {
-    +type
-    +name
-    +ticker
-    +quantity
-    +price
-    +filePath
-    +brokerageFee
-    +fxFee
-    +platformFee
-    +totalFees()
-}
+### Component-level implementation
 
-CG2StocksTracker --> Parser
-Parser --> ParsedCommand
-@enduml
-```
+- Parsing: `Parser.parseSet(...)` with optional type.
+- Execution: `CG2StocksTracker.handleSet(...)` routes to:
+  - `Portfolio.setPriceForHolding(...)` for typed mode
+  - `Portfolio.setPriceForTicker(...)` for ticker-wide mode
 
----
+### Class responsibilities
 
-### Design considerations
+- `Portfolio`: applies price updates.
+- `Ui`: confirms updates.
 
-The application uses a single `ParsedCommand` class instead of separate command classes.
+### Command execution flow
 
-This approach was chosen because:
+1. Parse ticker, price, optional type.
+2. Branch by presence of type.
+3. Apply update(s).
+4. Save state.
+5. Print confirmation.
 
-- It keeps the number of classes small
+[DIAGRAM PLACEHOLDER: docs/diagrams/set-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/set-command-sequence.puml]
 
-- It simplifies the parsing process
+### Error handling and validation
 
+- Price must be > 0.
+- Unknown target holding/ticker returns explicit error.
 
-However, it means that adding new commands requires modifying existing code instead of adding new classes.
+### Alternatives considered
 
----
+- Only allow typed updates.
+- Rejected: ticker-wide update is useful for bulk same-ticker updates across asset types.
 
+### Current limitations
 
+- No historical price series; only latest price is stored.
 
-## Model Component
+### Possible future improvements
 
-### Overview
+- Add optional price timestamp/history support.
 
-The Model component stores all application data in memory.
+## `/watch` - Watchlist Operations
 
-Its main classes are:
+### High-level design
 
-- `PortfolioBook`: stores all portfolios and tracks which one is active
+Maintains watchlist entries and supports buying one unit into a portfolio.
 
-- `Portfolio`: stores holdings and portfolio-level P&L values
+Variants:
 
-- `Holding`: represents a single asset
+- `/watch add --type TYPE --ticker TICKER [--price PRICE]`
+- `/watch remove --type TYPE --ticker TICKER`
+- `/watch list`
+- `/watch buy --type TYPE --ticker TICKER --portfolio PORTFOLIO_NAME`
 
-- `Watchlist`: stores assets the user is monitoring but has not bought yet
+### Component-level implementation
 
-- `WatchlistItem`: stores watchlist asset type, ticker, and optional target price
+- Parsing: `Parser.parseWatch(...)` and action-specific parsers.
+- Execution: `CG2StocksTracker.handleWatch(...)` routes by action.
+- Buy action: `Watchlist.buyItem(...)` validates price and portfolio, buys 1 unit, removes watch item.
 
+### Class responsibilities
 
----
+- `Watchlist`: source of truth for watch items and buy logic.
+- `PortfolioBook`/`Portfolio`: target portfolio resolution and add operation.
+- `Ui`: list and action output formatting.
 
-### Runtime integration
+### Command execution flow
 
-`CG2StocksTracker` mainly talks to `PortfolioBook`:
+1. Parse action and required options.
+2. Dispatch to add/remove/list/buy handler.
+3. Apply model mutation if action changes state.
+4. Save state for mutating actions.
 
-- Commands like `/create` and `/use` call `PortfolioBook`
+[DIAGRAM PLACEHOLDER: docs/diagrams/watch-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/watch-command-sequence.puml]
 
-- Commands that change holdings (`/add`, `/remove`, `/set`) first get the active `Portfolio` from `PortfolioBook`
-  (`/set` supports both ticker-level updates and type+ticker updates)
+### Error handling and validation
 
-- Watchlist commands (`/watch add`, `/watch remove`, `/watch list`, `/watch buy`) call `Watchlist`
+- Duplicate add.
+- Remove/buy target not found.
+- Buy without watch price.
+- Buy target portfolio not found.
 
-- `Storage` rebuilds both portfolio state and watchlist state during load
+### Alternatives considered
 
+- Allow configurable buy quantity for `/watch buy`.
+- Rejected initially to keep command simple and predictable.
 
----
+### Current limitations
 
-### `PortfolioBook` behavior (simple view)
+- `/watch buy` always buys 1 unit.
 
-`PortfolioBook` is the top-level container for portfolios.
+### Possible future improvements
 
-Key behavior:
+- Add optional `--qty` and optional fee fields to watch-buy flow.
 
-- Keeps portfolios in a map keyed by portfolio name
+## `/setmany` - Bulk CSV Price Update
 
-- `createPortfolio(name)` fails if the name already exists
+### High-level design
 
-- The first created portfolio becomes active automatically
+Processes CSV rows and updates matching ticker prices in active portfolio.
 
-- `usePortfolio(name)` switches active portfolio, but fails if the name does not exist
+### Component-level implementation
 
-- `getActivePortfolio()` fails when no active portfolio is selected
+- Parsing: `Parser.parseSetMany(...)` captures file path.
+- Execution: `CG2StocksTracker.handleSetMany(...)` -> `Storage.loadPriceUpdates(...)`.
+- Result reporting: `Ui.showBulkUpdateResult(...)`.
 
-- `ensurePortfolioExists(name)` creates the portfolio only when missing (used by storage loading)
+### Class responsibilities
 
-- `getPortfolios()` returns a copy list so callers cannot directly edit internal map state
+- `Storage`: file checks, CSV parsing, row-level validation, partial success handling.
+- `Portfolio`: ticker-wide update application.
 
+### Command execution flow
 
----
+1. Parse file path.
+2. Validate file exists and header is `ticker,price`.
+3. Process each row independently.
+4. Return success/failure summary.
+5. Save state after processed updates.
 
-### `Portfolio` behavior (simple view)
+[DIAGRAM PLACEHOLDER: docs/diagrams/setmany-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/setmany-command-sequence.puml]
 
-`Portfolio` manages holdings for one portfolio and tracks cumulative realized P&L.
+### Error handling and validation
 
-Key behavior:
+- Empty CSV file.
+- Invalid header.
+- Invalid row shape, blank ticker, non-positive price.
+- Holding not found for row ticker.
 
-- Holdings are stored by a composite key: `assetType + "|" + ticker`
+### Alternatives considered
 
-- `addHolding(...)`:
-Creates a new holding when missing, or updates an existing holding when the same key already exists.
-Fees are included in cost basis, so average buy price stays accurate.
+- Stop on first invalid row.
+- Rejected: partial success gives better operational usability.
 
-- `removeHolding(...)`:
-Validates holding existence and quantity, decides effective sell price, computes realized P&L, updates cumulative realized P&L, and removes the holding when quantity reaches zero.
+### Current limitations
 
-- Sell price priority in `removeHolding(...)`:
-1. Use explicit `--price` if provided.
-2. Else use holding `lastPrice` (from `/set` or restored/initial stored price).
-3. If still unavailable, fail.
+- CSV format fixed to `ticker,price`.
 
-- `setPriceForHolding(type, ticker, price)` updates one specific holding by type and ticker.
+### Possible future improvements
 
-- `setPriceForTicker(ticker, price)` is used for ticker-level updates (for example `/setmany` and `/set` without type).
+- Support optional type column and customizable delimiters.
 
-- `getCurrentTotalValue()` and `getTotalUnrealizedPnl()` sum only holdings that currently have a price.
+## `/value` - Portfolio Valuation
 
+### High-level design
 
----
+Provides value and P&L summary for active portfolio.
 
-### `Watchlist` behavior (simple view)
+### Component-level implementation
 
-`Watchlist` manages items users may buy later.
+- Parsing: no-argument command.
+- Execution: `CG2StocksTracker.handleValue()` -> `Ui.showPortfolioValue(portfolio)`.
+- Model values sourced from `Portfolio` and `Holding` state.
 
-Key behavior:
+### Class responsibilities
 
-- Each item is keyed by `assetType + "|" + ticker` (no duplicates).
+- `Portfolio`: current total value, total realized/unrealized P&L.
+- `Ui`: row-level and summary rendering.
 
-- `addItem(...)` stores an item with optional price.
+### Command execution flow
 
-- `removeItem(...)` deletes a specific item by type and ticker.
+1. Resolve active portfolio.
+2. Compute and display totals and per-holding unrealized P&L.
 
-- `buyItem(...)` enforces two rules:
-1. The item must already have a price.
-2. The user must provide an existing target portfolio name.
+[DIAGRAM PLACEHOLDER: docs/diagrams/value-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/value-command-sequence.puml]
 
-- On successful `buyItem(...)`, 1 unit is added to the target portfolio at the stored watchlist price, and the item is removed from the watchlist.
+### Error handling and validation
 
+- No active portfolio selected.
 
----
+### Alternatives considered
 
-### Design considerations
+- Move all formatting into model.
+- Rejected: presentation belongs in UI layer.
 
-Aspect: How portfolio state is organized.
+### Current limitations
 
-**Alternative 1 (current choice):** Keep a `PortfolioBook` that owns all portfolios and active-portfolio selection.
-Pros: Clear single entry point for portfolio-level operations.
-Cons: Controller still needs to fetch active portfolio before holding operations.
+- No currency conversion support.
 
-**Alternative 2:** Let controller manage multiple standalone `Portfolio` objects directly.
-Pros: Fewer model classes.
-Cons: Active-portfolio tracking logic gets spread across controller code.
+### Possible future improvements
 
-Aspect: How realized P&L is handled.
+- Add multi-currency valuation support.
 
-**Alternative 1 (current choice):** Maintain running realized P&L in `Portfolio`.
-Pros: Fast reads for `/value` and easy persistence.
-Cons: Must update correctly on every sell path.
+## `/insights` - Performance Insights
 
-**Alternative 2:** Recompute realized P&L from transaction history every time.
-Pros: Easier auditing of historical trades.
-Cons: Requires storing full trade history and adds complexity.
+### High-level design
 
+Provides holding-level performance analysis with option variants in one command section.
 
----
+Variants within command:
 
-## Storage Component
+- base `/insights`
+- type filter: `--type stock|etf|bond`
+- top gainers: `--top N`
+- chart view: `--chart`
+- combinations of valid options
 
-### Overview
+### Component-level implementation
 
-The API of this component is specified in `Storage.java`.
+- Parsing: `Parser.parseInsights(...)` stores raw option text.
+- Option interpretation: `CG2StocksTracker.parseInsightsOptions(...)` validates and converts options.
+- Rendering: `Ui.showInsightsTable(portfolio, filterType, topN, showChart)`.
 
-`Storage` handles four persistence tasks:
+### Class responsibilities
 
-- Load saved data into memory when the app starts
+- `CG2StocksTracker`: option semantics and validation.
+- `Ui`: filtering, sorting, summary and optional chart rendering.
+- `Holding`: unrealized value source.
 
-- Save the latest in-memory data back to file after state-changing commands
+### Command execution flow
 
-- Load and save watchlist data
+1. Parse raw insights options.
+2. Validate option keys and values.
+3. Build `InsightsOptions` object.
+4. Render insights table with optional chart.
 
-- Read CSV files for `/setmany` and return a summary of what succeeded/failed
+[DIAGRAM PLACEHOLDER: docs/diagrams/insights-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/insights-command-sequence.puml]
 
+### Error handling and validation
 
----
+- Duplicate options rejected.
+- Unknown options rejected.
+- `--type` value must map to `AssetType`.
+- `--top` must be positive integer.
 
-### Runtime integration
+### Alternatives considered
 
-`Storage` is used by `CG2StocksTracker` at two points:
+- Parse all insights options entirely in `Parser` into extra DTO fields.
+- Rejected: would bloat general command DTO for one feature.
 
-- On startup (`new CG2StocksTracker(...)`), `storage.load()` initializes the `PortfolioBook` and `storage.loadWatchlist()` initializes `Watchlist`
+### Current limitations
 
-- After successful state-changing commands (`create`, `add`, `remove`, `set`, `setmany`, `watch add`, `watch remove`, `watch buy`), `storage.save(portfolioBook)` and `storage.saveWatchlist(watchlist)` persist state
+- Chart is ASCII-only and not persisted.
 
-This keeps command flow in the controller, while file format and file checks stay inside `Storage`.
+### Possible future improvements
 
+- Add richer export formats (CSV/JSON) for insights results.
 
----
+## `/help` - Help Menu
 
-### Save file format
+### High-level design
 
-The save file uses one record per line, separated by `|`:
+Provides quick command reference.
 
-- `ACTIVE|<portfolioName>`
+### Component-level implementation
 
-- `PORTFOLIO|<name>|<totalRealizedPnl>`
+- Parsing: no-argument command.
+- Execution: `CG2StocksTracker` calls `Ui.showHelp()`.
 
-- `HOLDING|<portfolioName>|<assetType>|<ticker>|<quantity>|<averageBuyPrice>|<lastPrice>`
+### Class responsibilities
 
-Watchlist data is stored in a separate file with one record per line:
+- `Ui`: help content formatting.
 
-- `WATCH|<assetType>|<ticker>|<price>`
+### Command execution flow
 
+1. Parse `/help`.
+2. Print help summary.
 
-Notes:
+[DIAGRAM PLACEHOLDER: docs/diagrams/help-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/help-command-sequence.puml]
 
-- `ACTIVE|` with an empty second field means there is no active portfolio.
+### Error handling and validation
 
-- For unpriced holdings, `lastPrice` is stored as an empty field.
+- Extra arguments are rejected by parser.
 
-- Older holding rows with 6 fields are still supported:
-`HOLDING|<portfolioName>|<assetType>|<ticker>|<quantity>|<restoredPrice>`.
+### Alternatives considered
 
-- For these older rows, `restoredPrice` is used as both `lastPrice` and `averageBuyPrice`.
+- External help file loading.
+- Rejected for now to keep runtime dependency-free.
 
-- For watchlist rows, `price` is optional; an empty field means no price is set.
+### Current limitations
 
+- Help text is static and must be updated manually.
 
----
+### Possible future improvements
 
-### Key methods and behavior
+- Generate help content from command metadata.
 
-`load()`:
+## `/exit` - Exit Application
 
-- Ensures the file exists via `createFileIfMissing()`
+### High-level design
 
-- Reads all lines and handles each record type (`ACTIVE`, `PORTFOLIO`, `HOLDING`)
+Terminates main loop cleanly.
 
-- Rebuilds portfolios and holdings using `PortfolioBook` and `Portfolio.restoreHolding(...)`
+### Component-level implementation
 
-- Applies the active portfolio only after all records are parsed
+- Parsing: no-argument command.
+- Execution: `CG2StocksTracker.execute(...)` returns `false` for `EXIT`.
+- UI shows goodbye message.
 
+### Class responsibilities
 
-`save(PortfolioBook)`:
+- `CG2StocksTracker`: loop termination decision.
+- `Ui`: farewell output.
 
-- Rebuilds the whole save file from current in-memory state
+### Command execution flow
 
-- Persists cumulative realized P&L at portfolio level
+1. Parse `/exit`.
+2. Print goodbye.
+3. Stop run loop.
 
-- Persists quantity, average buy price, and optional last price for each holding
+[DIAGRAM PLACEHOLDER: docs/diagrams/exit-command-class.puml]
+[DIAGRAM PLACEHOLDER: docs/diagrams/exit-command-sequence.puml]
 
-- Writes all lines using `Files.write(...)`
+### Error handling and validation
 
+- Extra arguments are rejected by parser.
 
-`loadPriceUpdates(Path, Portfolio)`:
+### Alternatives considered
 
-- Validates file existence/type and enforces CSV header `ticker,price`
+- Implicit EOF-only shutdown.
+- Rejected: explicit command improves usability and automation.
 
-- Parses each row and updates matching holdings with `Portfolio.setPriceForTicker(...)`
+### Current limitations
 
-- Accumulates both success and per-row failure details in `BulkUpdateResult`
+- No confirmation prompt before exit.
 
+### Possible future improvements
 
-`loadWatchlist()` / `saveWatchlist(Watchlist)`:
+- Optional unsaved-state warning mode.
 
-- Uses a separate file at `<main-storage-file>.watchlist`
+## Storage Design Notes
 
-- Loads and saves watchlist items with optional prices
+### High-level design
 
-- Validates watchlist file structure independently from portfolio storage
+Persistence uses text files for simplicity and transparency.
 
+Main records in `data/CG2StocksTracker.txt`:
 
----
+- `ACTIVE|...`
+- `PORTFOLIO|...`
+- `HOLDING|...`
 
-### Error handling strategy
+Watchlist records in `data/CG2StocksTracker.txt.watchlist`:
 
-- Invalid save-file structure/content is reported as `Corrupted storage file.`
+- `WATCH|...`
 
-- File-system failures surface operation-specific messages such as `Unable to create storage file.`, `Unable to read storage file.`, `Unable to save storage file.`, and `Unable to read CSV file.`
+### Error handling and validation
 
-- Watchlist persistence uses similar operation-specific messages (create/read/save watchlist storage file)
+- Corrupted main storage lines -> `Corrupted storage file.`
+- Corrupted watchlist lines -> `Corrupted watchlist storage file.`
+- IO failures produce operation-specific read/write errors.
 
-- CSV row-level errors do not stop the whole batch; they are collected in `BulkUpdateResult.failures()`
+### Current limitations
 
+- File format is tightly coupled to parser/model assumptions.
 
----
+### Possible future improvements
 
-### Design considerations
-
-Aspect: Where CSV batch update logic should live.
-
-**Alternative 1 (current choice):** Keep CSV parsing and file I/O in `Storage`.
-Pros: Keeps `Parser` focused on command syntax and keeps file checks in one place.
-Cons: `Storage` handles both persistence and batch import responsibilities.
-
-**Alternative 2:** Parse CSV in `Parser` or controller.
-Pros: Reduces surface area of the `Storage` class.
-Cons: Mixes command parsing with file parsing and repeats validation logic.
-
-
----
-
-# Implementation
-
----
-
-## Command execution
-
-This section describes how commands are executed in the application.
-
----
-
-### Sequence Diagram
-
----
-
-### Explanation
-
-This diagram shows the general flow for all commands.
-
-The important points are:
-
-- All commands go through `CG2StocksTracker`
-
-- Parsing is handled separately by `Parser`
-
-- The Model performs the actual operation
-
-- Storage is only involved when data changes
-
-
----
-
-## Create portfolio
-
-### Implementation
-
-The `create` command creates a new portfolio.
-
-Steps:
-
-1. Command is parsed into `ParsedCommand`
-
-2. `CG2StocksTracker` calls `PortfolioBook.createPortfolio(name)`
-
-3. The new portfolio is added
-
-4. If no active portfolio exists, it is set as active
-
-5. The updated state is saved
-
-6. A message is displayed
-
-
----
-
-### Sequence Diagram
-
----
-
-### Explanation
-
-This diagram shows a simple state-changing command.
-
-The main point is that:
-
-- Portfolio creation is handled by `PortfolioBook`
-
-- The controller does not manage internal data structures
-
-- The state is saved immediately after modification
-
-
----
-
-## Add holding
-
-### Implementation
-
-The `add` command adds a holding to the active portfolio.
-
-Steps:
-
-1. Retrieve active portfolio
-
-2. `CG2StocksTracker.handleAdd(...)` reads `ParsedCommand.totalFees()`
-
-3. Call `Portfolio.addHolding(...)`
-
-4. Update existing holding or create new one
-
-5. If the holding already exists, recalculate average buy price using weighted average cost
-
-6. If fees are provided, include them in the effective purchase cost
-
-7. Save state
-
-8. Display result
-
-
----
-
-### Explanation
-
-The logic is handled inside `Portfolio` and `Holding` to ensure that:
-
-- Holdings are managed consistently
-
-- Average buy price is updated correctly
-
-- Fees are incorporated into cost basis
-
-- The controller does not duplicate logic
-
-
----
-
-## Delete holding
-
-### Implementation
-
-The `remove` command removes a holding.
-
-If the holding does not exist, an error is returned.
-
-When the holding exists, the system computes realized P&L using the holding's stored average buy price and updates the portfolio's cumulative realized P&L before saving the updated state. If fees are provided, they are deducted from realized profit/loss.
-
----
-
-### Sequence Diagram
-
-```plantuml
-@startuml
-title Interactions for /remove Command
-
-actor User
-participant Ui
-participant CG2StocksTracker
-participant Parser
-participant ParsedCommand
-participant Portfolio
-participant Holding
-participant Storage
-
-User -> Ui : enters /remove ... --price ... --brokerage ...
-Ui -> CG2StocksTracker : read command
-CG2StocksTracker -> Parser : parse(input)
-Parser --> CG2StocksTracker : ParsedCommand
-CG2StocksTracker -> ParsedCommand : totalFees()
-ParsedCommand --> CG2StocksTracker : fees
-CG2StocksTracker -> Portfolio : removeHolding(type, ticker, qty, price, fees)
-
-Portfolio -> Holding : removeQuantity(quantityToRemove, effectivePrice, fees)
-Holding --> Portfolio : realizedDelta
-
-Portfolio -> Portfolio : totalRealizedPnl += realizedDelta
-Portfolio --> CG2StocksTracker : RemoveResult
-
-CG2StocksTracker -> Storage : save(portfolioBook)
-Storage --> CG2StocksTracker : success
-
-CG2StocksTracker -> Ui : show sold quantity,\nsell price, realized P&L
-Ui --> User : result displayed
-@enduml
-```
-
----
-
-### Explanation
-
-This diagram shows the main flow for the `/remove` command.
-
-The important points are:
-
-- `ParsedCommand` aggregates fee fields
-
-- `Holding` computes realized P&L using average buy price and deducts fees
-
-- `Portfolio` updates cumulative realized P&L
-
-- The updated state is saved immediately after modification
-
-
-This ensures that invalid operations do not modify the system state.
-
----
-
-## Cost basis and P&L tracking
-
-This section describes some noteworthy details on how cost basis persistence and P&L calculation are implemented.
-
-### Implementation
-
-The cost basis and P&L tracking mechanism is facilitated by `Holding`, `Portfolio`, and `Storage`.
-
-- `Holding` stores the asset type, ticker, quantity, last price, and average buy price.
-- `Portfolio` stores all holdings in a portfolio and keeps track of cumulative realized P&L.
-- `Storage` saves and restores the information required for accurate P&L calculation across application restarts.
-
-When the user executes the `/add` command for an existing holding, the holding does not create a separate transaction record. Instead, the system updates the existing holding’s quantity and recalculates its average buy price using weighted average cost.
-
-If fees are provided, they are included in the effective purchase cost.
-
-The formula used is:
-
-`newAvg = (oldQty * oldAvg + addedQty * (addedPrice + fees / addedQty)) / (oldQty + addedQty)`
-
-When the user executes the `/remove` command, the system computes realized P&L using the holding’s stored average buy price.
-
-If fees are provided, they are deducted from the realized P&L.
-
-The formula used is:
-
-`realizedPnl = (sellPrice - averageBuyPrice) * quantitySold - fees`
-
-Unrealized P&L is computed from the last saved market price:
-
-`unrealizedPnl = (lastPrice - averageBuyPrice) * quantity`
-
-To ensure correctness across sessions, the Storage component persists:
-
-- portfolio realized P&L
-- holding quantity
-- holding average buy price
-- holding last price
-
-During loading, the system reconstructs holdings using the stored average buy price instead of inferring cost basis from market price. This prevents incorrect gains/losses after restarting the application.
-
-Legacy storage files are still supported. If an older holding record does not contain a separate average buy price field, the stored price is used as both the restored market price and the restored average buy price.
-
-### Sequence Diagram
-
-The following sequence diagram shows how the `/remove` command updates realized P&L and persists the updated state.
-
-```plantuml
-@startuml
-title Interactions for /remove Command
-
-actor User
-participant Ui
-participant CG2StocksTracker
-participant Parser
-participant ParsedCommand
-participant Portfolio
-participant Holding
-participant Storage
-
-User -> Ui : enters /remove ... --price ... --brokerage ...
-Ui -> CG2StocksTracker : read command
-CG2StocksTracker -> Parser : parse(input)
-Parser --> CG2StocksTracker : ParsedCommand
-CG2StocksTracker -> ParsedCommand : totalFees()
-ParsedCommand --> CG2StocksTracker : fees
-CG2StocksTracker -> Portfolio : removeHolding(type, ticker, qty, price, fees)
-
-Portfolio -> Holding : removeQuantity(quantityToRemove, effectivePrice, fees)
-Holding --> Portfolio : realizedDelta
-
-Portfolio -> Portfolio : totalRealizedPnl += realizedDelta
-Portfolio --> CG2StocksTracker : RemoveResult
-
-CG2StocksTracker -> Storage : save(portfolioBook)
-Storage --> CG2StocksTracker : success
-
-CG2StocksTracker -> Ui : show sold quantity,\nsell price, realized P&L
-Ui --> User : result displayed
-@enduml
-```
-
-### Design considerations
-
-Aspect: How cost basis is tracked.
-
-**Alternative 1 (current choice):** Store average buy price directly in each `Holding`.
-Pros: Simple to implement and efficient for portfolio-level P&L calculations.
-Cons: Does not preserve full transaction history.
-
-**Alternative 2:** Store every buy transaction separately and derive cost basis when needed.
-Pros: More detailed and extensible for future analytics.
-Cons: More complex to implement and unnecessary for the current feature scope.
-
-Aspect: How P&L is restored after restart.
-
-**Alternative 1 (current choice):** Persist `averageBuyPrice`, `lastPrice`, and realized P&L in storage.
-Pros: Ensures gains/losses remain correct after reload.
-Cons: Requires a richer storage format.
-
-**Alternative 2:** Recompute values from market price only during loading.
-Pros: Simpler storage format.
-Cons: Incorrect because market price is not the same as cost basis.
-
----
-
-## Insights command
-
-### Implementation
-
-The `/insights` command provides holding-level performance diagnostics for the active portfolio.
-
-Execution flow:
-
-1. `Parser.parseInsights(...)` captures trailing options text from the raw command.
-
-2. `CG2StocksTracker.parseInsightsOptions(...)` validates and interprets supported options:
-    - `--type stock|etf|bond`
-    - `--top N` (positive integer)
-    - `--chart`
-
-3. `Ui.showInsightsTable(...)` renders:
-    - a compact table with holding-level metrics (absolute + percentage unrealized P&L)
-    - summary statistics (priced/unpriced counts, cost basis, realized/unrealized/net)
-    - optional ASCII chart when `--chart` is provided
-
-Behavior details:
-
-- Base `/insights` view lists holdings in ticker order.
-- `--type` limits results to one asset class.
-- `--top N` returns top gainers only (positive unrealized P&L), sorted descending by unrealized P&L.
-- `--chart` renders a diverging loss/gain bar around a center `|` marker.
-- Chart scale uses unrealized percentage (`unrealizedPnl / costBasis`) and is normalized to the largest absolute percentage in the current view.
-
----
-
-### Sequence Diagram
-
-```plantuml
-@startuml
-title Interactions for /insights Command
-
-actor User
-participant Ui
-participant CG2StocksTracker
-participant Parser
-participant ParsedCommand
-participant PortfolioBook
-participant Portfolio
-
-User -> Ui : enters /insights --type stock --top 3 --chart
-Ui -> CG2StocksTracker : read command
-CG2StocksTracker -> Parser : parse(input)
-Parser --> CG2StocksTracker : ParsedCommand(type=INSIGHTS, listTarget=rawOptions)
-
-CG2StocksTracker -> CG2StocksTracker : parseInsightsOptions(rawOptions)
-CG2StocksTracker -> PortfolioBook : getActivePortfolio()
-PortfolioBook --> CG2StocksTracker : Portfolio
-
-CG2StocksTracker -> Ui : showInsightsTable(portfolio, filterType, topN, showChart)
-Ui --> User : insights table + optional chart
-@enduml
-```
-
----
-
-### Explanation
-
-This command intentionally splits responsibility between parser, controller, and UI:
-
-- `Parser` keeps `/insights` generic and forwards raw option text.
-- `CG2StocksTracker` validates option combinations and converts them into typed flags.
-- `Ui` owns presentation logic (table formatting, top-gainer filtering, and chart rendering).
-
-This keeps domain behavior easy to evolve while preserving a compact command DTO (`ParsedCommand`).
-
-### Design considerations
-
-Aspect: Where to parse `/insights` options.
-
-**Alternative 1 (current choice):** Keep parser generic for `/insights` and parse options in `CG2StocksTracker`.
-Pros: avoids inflating `ParsedCommand` with temporary insights-specific fields; keeps option evolution localized.
-Cons: command-specific validation is split between parser and controller.
-
-**Alternative 2:** Parse `/insights` options fully in `Parser` into dedicated fields.
-Pros: stronger parse-time typing.
-Cons: larger `ParsedCommand` surface and more cross-command coupling.
-
----
-
-## Bulk price update
-
-### Implementation
-
-The `setmany` command updates prices using a CSV file.
-
-Steps:
-
-1. Parse file path
-
-2. Call `Storage.loadPriceUpdates(...)`
-
-3. Process each row
-
-4. Update holdings
-
-5. Return summary
-
-
----
-
-### Sequence Diagram
-
----
-
-### Explanation
-
-The loop in this diagram represents processing multiple rows.
-
-The key idea is that:
-
-- Batch processing is handled in `Storage`
-
-- The controller does not handle iteration logic
-
-
----
-
-## Main app integration
-
-### Implementation
-
-The `CG2StocksTracker` class is the main integration point of the application.
-
-It is responsible for:
-
-- creating the main components (`Ui`, `Parser`, `Storage`, and `PortfolioBook`)
-
-- loading saved data at startup
-
-- running the main command loop
-
-- dispatching parsed commands to the correct handler
-
-- saving data after state-changing commands
-
-
-This keeps the responsibilities of the other classes small:
-
-- `Ui` handles input and output
-
-- `Parser` converts raw text into `ParsedCommand`
-
-- `PortfolioBook` and `Portfolio` handle domain logic
-
-- `Storage` handles file persistence
-
-
----
-
-### Class Diagram
-
-```plantuml
-@startuml
-title Main App Integration
-
-class CG2StocksTracker
-class Ui
-class Parser
-class ParsedCommand
-class PortfolioBook
-class Storage
-
-Ui --> CG2StocksTracker
-CG2StocksTracker --> Parser
-Parser --> ParsedCommand
-CG2StocksTracker --> PortfolioBook
-CG2StocksTracker --> Storage
-@enduml
-```
-
----
-
-### Sequence Diagram
-
-```plantuml
-@startuml
-title Executing a Command
-
-actor User
-participant Ui
-participant CG2StocksTracker
-participant Parser
-participant PortfolioBook
-participant Portfolio
-participant Storage
-
-CG2StocksTracker -> Ui : readCommand()
-Ui --> CG2StocksTracker : raw command
-CG2StocksTracker -> Parser : parse(...)
-Parser --> CG2StocksTracker : ParsedCommand
-CG2StocksTracker -> PortfolioBook : getActivePortfolio()
-PortfolioBook --> CG2StocksTracker : Portfolio
-CG2StocksTracker -> Portfolio : perform operation
-CG2StocksTracker -> Storage : save(...)
-CG2StocksTracker -> Ui : showMessage(...)
-@enduml
-```
-
----
-
-### Explanation
-
-This diagram shows the overall flow of a state-changing command.
-
-The important points are:
-
-- `CG2StocksTracker` controls the command flow
-
-- parsing is separated from execution
-
-- the model performs the actual update
-
-- `Storage` is called only after a successful modification
-
-
----
-
-### Design considerations
-
-The main application flow is coordinated in one class instead of being split across `Ui`, `Parser`, and the model.
-
-This approach was chosen because:
-
-- command handling stays in one place
-
-- errors can be handled consistently in the main loop
-
-- save operations are easier to control
-
-
-An alternative was to let `Ui` call model methods directly.
-
-This was not used because it would mix input handling, command dispatch, and business logic in the same component.
-
----
-
-## Record fees
-
-### Implementation
-
-The `record fees` enhancement extends `/add` and `/remove` so that a user can include:
-
-- `--brokerage`
-
-- `--fx`
-
-- `--platform`
-
-
-These values are parsed as optional fields and stored in `ParsedCommand`.
-
-`ParsedCommand.totalFees()` combines the three fields into one value before the command is executed.
-
-For `/add`:
-
-1. `Parser.parseAdd(...)` reads the optional fee fields
-
-2. `CG2StocksTracker.handleAdd(...)` gets the total fee amount
-
-3. `Portfolio.addHolding(...)` updates the holding
-
-4. the fee is included in the holding's average buy price
-
-
-For `/remove`:
-
-1. `Parser.parseRemove(...)` reads the optional fee fields
-
-2. `CG2StocksTracker.handleRemove(...)` gets the total fee amount
-
-3. `Portfolio.removeHolding(...)` removes the quantity sold
-
-4. `Holding.removeQuantity(...)` deducts the fee from realized profit/loss
-
-
-This allows portfolio performance to reflect transaction costs instead of using only raw buy and sell prices.
-
----
-
-### Class Diagram
-
-```plantuml
-@startuml
-title Record Fees
-
-class ParsedCommand {
-  +brokerageFee
-  +fxFee
-  +platformFee
-  +totalFees()
-}
-
-class CG2StocksTracker
-class Portfolio
-class Holding
-
-ParsedCommand --> CG2StocksTracker
-CG2StocksTracker --> Portfolio
-Portfolio --> Holding
-@enduml
-```
-
----
-
-### Sequence Diagram
-
-```plantuml
-@startuml
-title Removing a Holding With Fees
-
-actor User
-participant Parser
-participant ParsedCommand
-participant CG2StocksTracker
-participant Portfolio
-participant Holding
-participant Storage
-
-User -> Parser : /remove ... --brokerage ... --fx ...
-Parser --> ParsedCommand : parsed command
-CG2StocksTracker -> ParsedCommand : totalFees()
-ParsedCommand --> CG2StocksTracker : fees
-CG2StocksTracker -> Portfolio : removeHolding(..., fees)
-Portfolio -> Holding : removeQuantity(..., fees)
-Holding --> Portfolio : realizedPnl
-Portfolio --> CG2StocksTracker : result
-CG2StocksTracker -> Storage : save(...)
-@enduml
-```
-
----
-
-### Explanation
-
-This diagram shows how fees are included in a sell transaction.
-
-The important points are:
-
-- fee fields are parsed together with the command
-
-- the controller passes only the total fee amount to the model
-
-- realized profit/loss is calculated inside `Holding`
-
-- the updated portfolio state is saved after the operation
-
-
----
-
-### Design considerations
-
-Fees are stored separately in `ParsedCommand`, but the model uses only the combined fee amount.
-
-This approach was chosen because:
-
-- the command format remains clear to the user
-
-- the model stays simple
-
-- fee handling logic is reused for both buy and sell commands
-
-
-For buys, fees are added into the effective purchase cost.
-
-For sells, fees are deducted from realized profit/loss.
-
-An alternative was to introduce a separate `Trade` class to store every transaction and fee category in full detail.
-
-This was not used because the current application stores aggregate holdings instead of a full transaction history.
-
----
-
-# Design Considerations
-
----
-
-## Command handling
-
-Using `ParsedCommand` simplifies the system but reduces extensibility.
-
----
-
-## Error handling
-
-Exceptions are used to ensure that errors are not ignored.
-
----
-
-
-
-## Product scope
-### Target user profile
-
-{Describe the target user profile}
-
-### Value proposition
-
-{Describe the value proposition: what problem does it solve?}
+- Move to structured JSON schema with version migration.
 
 ## User Stories
 
-| Version | Role             | Feature                                                     | Benefit                                              | Category                    |
-|--------|------------------|-------------------------------------------------------------|------------------------------------------------------|-----------------------------|
-| 1.0    | Amateur investor | create a new portfolio from the CLI                         | separate long-term investing from short-term trades   | Core portfolio management   |
-| 1.0    | Investor         | add a stock, ETF, or bond to my portfolio via the CLI       | track what I own without using spreadsheets           | Core portfolio management   |
-| 1.0    | Investor         | remove a holding from my portfolio                          | keep records accurate when I exit a position          | Core portfolio management   |
-| 1.0    | Investor         | view a list of all my current holdings                      | quickly see what my portfolio consists of             | Portfolio view              |
-| 1.0    | Investor         | update prices for my holdings                               | reflect current market conditions                     | Market data                 |
-| 2.0    | Investor         | record units/shares and average buy price                   | calculate gains and losses correctly                  | Core portfolio management   |
-| 2.0    | Investor         | record fees (brokerage, FX, platform fees) per trade        | reflect true returns                                 | Performance accuracy        |
-| 2.0    | Investor         | see the current total value of my portfolio                 | know what my investments are worth right now          | Portfolio value             |
-| 2.0    | Investor         | see gains or losses per holding                             | know which assets help or hurt performance            | Performance insights        |
-| 2.0    | Investor         | see unrealized vs realized gains separately                 | distinguish paper gains from locked-in results        | Performance insights        |
+| Version | Role | Feature | Benefit | Category |
+|---|---|---|---|---|
+| 1.0 | Amateur investor | create a new portfolio from the CLI | separate long-term investing from short-term trades | Core portfolio management |
+| 1.0 | Investor | add a stock, ETF, or bond to my portfolio via the CLI | track what I own without using spreadsheets | Core portfolio management |
+| 1.0 | Investor | remove a holding from my portfolio | keep records accurate when I exit a position | Core portfolio management |
+| 1.0 | Investor | view a list of all my current holdings | quickly see what my portfolio consists of | Portfolio view |
+| 1.0 | Investor | update prices for my holdings | reflect current market conditions | Market data |
+| 2.0 | Investor | record units/shares and average buy price | calculate gains and losses correctly | Core portfolio management |
+| 2.0 | Investor | record fees (brokerage, FX, platform fees) per trade | reflect true returns | Performance accuracy |
+| 2.0 | Investor | add multiple buys/sells for the same ticker | update cost basis over time | Trade tracking |
+| 2.0 | Investor | view holdings grouped by asset type | understand allocation quickly | Portfolio view |
+| 2.0 | Investor | see the current total value of my portfolio | know what my investments are worth right now | Portfolio value |
+| 2.0 | Investor | see gains or losses per holding | know which assets help or hurt performance | Performance insights |
+| 2.0 | Investor | see unrealized vs realized gains separately | distinguish paper gains from locked-in results | Performance insights |
+| 2.0 | Amateur investor | add a stock to a watchlist even if I do not own it | track opportunities over time | Watchlist |
+| 2.0 | Investor | view my watchlist separately from my portfolio | avoid mixing owned vs considered assets | Watchlist |
 
 ## Non-Functional Requirements
 
-{Give non-functional requirements}
+- Platform support: Java 17+ on Windows/macOS/Linux.
+- Reliability: malformed command input must not crash the app.
+- Persistence: successful state-changing operations must survive restart.
+- Usability: command errors should provide actionable messages.
+- Performance: command operations should be responsive for small-to-medium personal portfolios.
 
-## Glossary
+## Glossary (v2.0 data model)
 
-* *glossary item* - Definition
+- Portfolio: a named container of holdings (for example, `longterm`, `trading`).
+- Holding: one owned asset identified by `(assetType, ticker)`.
+- Price: latest known market price per unit for a ticker, stored when user updates it.
+- Realized P&L: gain/loss from completed sells.
+- Unrealized P&L: gain/loss on open positions based on last stored price.
 
-## Instructions for manual testing
+## Instructions for Manual Testing (Smoke Checklist)
 
-{Give instructions on how to do a manual product testing e.g., how to load sample data to be used for testing}
+Use these as quick confidence checks after changes.
+
+### Setup
+
+1. Run the app.
+2. Ensure `data/CG2StocksTracker.txt` and watchlist file are writable.
+
+### Core portfolio flow
+
+1. `/create longterm`
+2. `/create trading`
+3. `/use longterm`
+4. `/add --type stock --ticker VOO --qty 2 --price 300 --brokerage 1`
+5. `/list`
+6. `/set --type stock --ticker VOO --price 350`
+7. `/value`
+8. `/remove --type stock --ticker VOO --qty 1 --price 360 --platform 0.5`
+9. `/value`
+
+Expected checks:
+
+- holdings appear with updated quantity
+- realized and unrealized values are shown
+- no crash and no malformed output
+
+### Watchlist flow
+
+1. `/watch add --type etf --ticker QQQ --price 450`
+2. `/watch list`
+3. `/watch buy --type etf --ticker QQQ --portfolio trading`
+4. `/use trading`
+5. `/list`
+
+Expected checks:
+
+- watch item appears then is removed after buy
+- one unit bought into `trading`
+
+### Setmany flow
+
+1. Prepare CSV file with `ticker,price` header.
+2. `/setmany --file <path>`
+
+Expected checks:
+
+- summary shows succeeded/failed row counts
+- invalid rows are reported without aborting valid rows
+
+### Insights flow
+
+1. `/insights`
+2. `/insights --type stock`
+3. `/insights --top 3 --chart`
+
+Expected checks:
+
+- output table is printed
+- optional chart prints for `--chart`
+
+### Failure-path spot checks
+
+1. `/add --type crypto --ticker BTC --qty 1 --price 1`
+2. `/remove --type stock --ticker UNKNOWN`
+3. `/set --ticker VOO --price -1`
+4. `/insights --top 0`
+5. `/watch buy --type etf --ticker MISSING --portfolio trading`
+
+Expected checks:
+
+- each command returns clear error text
+- app remains usable for next command
