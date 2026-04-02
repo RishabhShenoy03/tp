@@ -57,6 +57,8 @@ public class Holding {
         double addedCost = (purchasePrice * quantityToAdd) + totalFees;
         quantity += quantityToAdd;
         averageBuyPrice = (totalCostBefore + addedCost) / quantity;
+        assert quantity > 0 && averageBuyPrice > 0
+                : "Holding state must remain positive after adding quantity";
     }
 
     public double removeQuantity(double quantityToRemove, double sellPrice, double totalFees) {
@@ -76,6 +78,10 @@ public class Holding {
         if (quantity == 0) {
             averageBuyPrice = 0;
         }
+
+        assert quantity >= 0 : "Holding quantity cannot become negative after removal";
+        assert quantity != 0 || averageBuyPrice == 0
+                : "Average buy price should reset when holding quantity becomes zero";
 
         return realizedPnl;
     }
