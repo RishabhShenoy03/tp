@@ -21,7 +21,7 @@ Given below are my contributions to the project.
 - How:
   - Extended command parsing in CG2StocksTracker to validate `--type` and `--top N` options.
   - Implemented stream-based filtering and sorting in `showInsightsTable()`.
-  - Sorted holdings by ticker for all-holdings view; by unrealized P&L (descending) for top-N view.
+  - Sorted holdings by ticker for all-holdings view, sorted by unrealized P&L (descending) to show top-N holdings.
 
 #### P&L Chart: Visual Performance at a Glance
 - What:
