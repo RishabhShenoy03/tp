@@ -13,6 +13,7 @@ Given below are my contributions to the project.
     - Implemented `Storage` for loading/saving `PortfolioBook` state to `data/CG2StocksTracker.txt`.
     - Added support for persisting active portfolio, realized P&L, holdings, and optional last price fields.
     - Implemented CSV bulk price loading (`/setmany`) with partial-success handling and row-level failure reporting.
+    - Added watchlist persistence in `data/CG2StocksTracker.txt.watchlist`.
 - Why:
     - Portfolio tracking must survive application restarts and handle malformed input data safely.
     - Bulk updates reduce repetitive manual price updates.
@@ -27,9 +28,14 @@ Given below are my contributions to the project.
     - Created `Watchlist` and `WatchlistItem` classes with validation and ticker normalization.
     - Added `/watch add`, `/watch remove`, `/watch list`, and `/watch buy` command support through parser, app logic, UI, and storage.
     - Added watchlist persistence in `data/CG2StocksTracker.txt.watchlist`.
+    - Implemented watchlist-to-portfolio buy flow that:
+        - validates target portfolio existence
+        - requires a stored watchlist price
+        - removes bought items from the watchlist
 - Why:
     - Users need a separate place to track potential buys without mixing them into owned holdings.
     - Watchlist-to-portfolio conversion should be fast and integrated with existing portfolio workflows.
+    - Buy-side flow needed guardrails to prevent silent failures (missing price, missing portfolio, duplicates).
 - How:
     - Implemented watchlist storage using `(type, ticker)` uniqueness and stable insertion order.
     - Implemented `buyItem(...)` logic that buys 1 unit at stored watch price into a chosen portfolio, then removes the watch item.
