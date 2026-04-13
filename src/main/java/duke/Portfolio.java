@@ -32,6 +32,7 @@ public class Portfolio {
         if (holdings.containsKey(key)) {
             Holding existing = holdings.get(key);
             existing.addQuantity(quantity, purchasePrice, fees);
+            existing.setLastPrice(purchasePrice);
             return existing.getQuantity();
         }
 

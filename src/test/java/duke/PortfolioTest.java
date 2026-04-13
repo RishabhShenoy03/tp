@@ -112,6 +112,18 @@ public class PortfolioTest {
     }
 
     @Test
+    void addHolding_existingHolding_updatesLastPriceToPurchasePrice() {
+        Portfolio portfolio = new Portfolio("demo");
+
+        portfolio.addHolding(AssetType.STOCK, "VOO", 1, 150, 0);
+        portfolio.addHolding(AssetType.STOCK, "VOO", 1, 200, 0);
+
+        Holding holding = portfolio.getHolding(AssetType.STOCK, "VOO");
+        assertEquals(2.0, holding.getQuantity());
+        assertEquals(200.0, holding.getLastPrice());
+    }
+
+    @Test
     void getCurrentTotalValue_sumsQuantityTimesUnitPriceAcrossHoldings() {
         Portfolio portfolio = new Portfolio("demo");
         portfolio.addHolding(AssetType.STOCK, "VOO", 1.5, 320, 0);
