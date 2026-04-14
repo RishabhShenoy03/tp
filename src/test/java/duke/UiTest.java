@@ -186,7 +186,7 @@ public class UiTest {
         assertTrue(output.contains("Portfolio: retirement"));
         assertTrue(output.contains("Current total value: 1000.00"));
         assertTrue(output.contains("Realized P&L: +0.00"));
-        assertTrue(output.contains("Unrealised P&L by holding:"));
+        assertTrue(output.contains("Unrealized P&L by holding:"));
         assertTrue(output.contains("TICKR  TYPE"));
         assertTrue(output.contains("BND"));
         assertTrue(output.contains("BOND"));
