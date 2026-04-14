@@ -202,6 +202,18 @@ public class ParserTest {
     }
 
     @Test
+    void parseCreate_withBlankQuotedName_throws() {
+        AppException ex = assertThrows(AppException.class, () -> parser.parse("/create \" \""));
+        assertEquals("Portfolio name cannot be blank", ex.getMessage());
+    }
+
+    @Test
+    void parseUse_withBlankQuotedName_throws() {
+        AppException ex = assertThrows(AppException.class, () -> parser.parse("/use \" \""));
+        assertEquals("Portfolio name cannot be blank", ex.getMessage());
+    }
+
+    @Test
     void parseCreate_withUnclosedQuote_throws() {
         assertThrows(AppException.class, () -> parser.parse("/create \"long term portfolio"));
     }
