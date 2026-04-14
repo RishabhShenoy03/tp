@@ -270,7 +270,7 @@ Examples:
 
 - `/watch add --type etf --ticker QQQ --price 450`
 - `/watch list`
-- `/watch buy --type etf --ticker QQQ --portfolio longterm`
+- `/watch buy --type etf --ticker QQQ --qty 2 --portfolio longterm`
 
 ### Bulk set prices from CSV: `/setmany`
 
@@ -344,6 +344,8 @@ Option behavior:
 Validation:
 
 - `N` must be a positive integer.
+- `N` must not exceed `10000`.
+- Missing values for `--type` and `--top` are rejected.
 - Duplicate options are rejected.
 - Unsupported options are rejected.
 
@@ -424,10 +426,10 @@ A: Yes. Portfolio and watchlist data are loaded from storage files on startup.
 - `/remove --type TYPE --ticker TICKER [--qty QTY] [--price PRICE] [--brokerage FEE] [--fx FEE] [--platform FEE]`
 - `/set --ticker TICKER --price PRICE`
 - `/set --type TYPE --ticker TICKER --price PRICE`
-- `/watch add --type TYPE --ticker TICKER [--price PRICE]`
+- `/watch add --type TYPE --ticker TICKER --price PRICE`
 - `/watch remove --type TYPE --ticker TICKER`
 - `/watch list`
-- `/watch buy --type TYPE --ticker TICKER --portfolio PORTFOLIO_NAME`
+- `/watch buy --type TYPE --ticker TICKER --qty QTY --portfolio PORTFOLIO_NAME`
 - `/setmany --file FILEPATH`
 - `/value`
 - `/insights [--type stock|etf|bond] [--top N] [--chart]`

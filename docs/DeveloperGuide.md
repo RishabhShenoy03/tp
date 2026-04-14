@@ -357,20 +357,20 @@ Variants:
 
 ### High-level design
 
-Maintains watchlist entries and supports buying one unit into a portfolio.
+Maintains watchlist entries and supports buying a specified quantity into a portfolio.
 
 Variants:
 
-- `/watch add --type TYPE --ticker TICKER [--price PRICE]`
+- `/watch add --type TYPE --ticker TICKER --price PRICE`
 - `/watch remove --type TYPE --ticker TICKER`
 - `/watch list`
-- `/watch buy --type TYPE --ticker TICKER --portfolio PORTFOLIO_NAME`
+- `/watch buy --type TYPE --ticker TICKER --qty QTY --portfolio PORTFOLIO_NAME`
 
 ### Component-level implementation
 
 - Parsing: `Parser.parseWatch(...)` and action-specific parsers.
 - Execution: `CG2StocksTracker.handleWatch(...)` routes by action.
-- Buy action: `Watchlist.buyItem(...)` validates price and portfolio, buys 1 unit, removes watch item.
+- Buy action: `Watchlist.buyItem(...)` validates price and portfolio, buys the requested quantity, removes watch item.
 
 ### Class responsibilities
 
@@ -398,16 +398,16 @@ Variants:
 
 ### Alternatives considered
 
-- Allow configurable buy quantity for `/watch buy`.
-- Rejected initially to keep command simple and predictable.
+- Keep `/watch buy` fixed to one unit.
+- Rejected: explicit quantity is more flexible and already supported by parser/model.
 
 ### Current limitations
 
-- `/watch buy` always buys 1 unit.
+- Watch-buy does not support per-trade fees.
 
 ### Possible future improvements
 
-- Add optional `--qty` and optional fee fields to watch-buy flow.
+- Add optional fee fields to watch-buy flow.
 
 ## `/setmany` - Bulk CSV Price Update
 
@@ -441,7 +441,7 @@ Processes CSV rows and updates matching ticker prices in active portfolio.
 
 - Empty CSV file.
 - Invalid header.
-- Invalid row shape, blank ticker, ticker longer than 10 characters, non-positive price.
+- Invalid row shape, blank ticker, non-positive price.
 - Holding not found for row ticker.
 
 ### Alternatives considered
@@ -745,14 +745,14 @@ Expected checks:
 
 1. `/watch add --type etf --ticker QQQ --price 450`
 2. `/watch list`
-3. `/watch buy --type etf --ticker QQQ --portfolio trading`
+3. `/watch buy --type etf --ticker QQQ --qty 2 --portfolio trading`
 4. `/use trading`
 5. `/list`
 
 Expected checks:
 
 - watch item appears then is removed after buy
-- one unit bought into `trading`
+- specified quantity is bought into `trading`
 
 ### Setmany flow
 
@@ -781,7 +781,7 @@ Expected checks:
 2. `/remove --type stock --ticker UNKNOWN`
 3. `/set --ticker VOO --price -1`
 4. `/insights --top 0`
-5. `/watch buy --type etf --ticker MISSING --portfolio trading`
+5. `/watch buy --type etf --ticker MISSING --qty 1 --portfolio trading`
 
 Expected checks:
 
