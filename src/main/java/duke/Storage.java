@@ -1,3 +1,4 @@
+//@@author jwelo
 package duke;
 
 import java.io.IOException;
@@ -9,12 +10,16 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Storage {
     private static final String CORRUPTED_FILE_MESSAGE = "Corrupted storage file.";
     private static final String CORRUPTED_WATCHLIST_FILE_MESSAGE = "Corrupted watchlist storage file.";
     private static final DateTimeFormatter BAD_FILE_TIMESTAMP_FORMAT =
             DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final Logger LOGGER = Logger.getLogger(Storage.class.getName());
+
     private final Path filePath;
     private final Path watchlistFilePath;
 
@@ -30,6 +35,7 @@ public class Storage {
     }
 
     public PortfolioBook load() throws AppException {
+        assert filePath != null : "Storage file path must not be null";
         createStorageFileIfMissing();
         assert Files.exists(filePath) : "Storage file should exist after initialization";
 
@@ -73,10 +79,13 @@ public class Storage {
                 applyActivePortfolio(portfolioBook, activePortfolioName);
             }
 
+            assert portfolioBook != null : "Loaded portfolio book cannot be null";
             return portfolioBook;
         } catch (IllegalArgumentException e) {
+            LOGGER.log(Level.WARNING, "Corrupted storage file read from " + filePath, e);
             throw new AppException(CORRUPTED_FILE_MESSAGE);
         } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Unable to read storage file: " + filePath, e);
             throw new AppException("Unable to read storage file.");
         }
     }
@@ -97,17 +106,22 @@ public class Storage {
         try {
             Files.move(filePath, quarantinedPath, StandardCopyOption.REPLACE_EXISTING);
             Files.createFile(filePath);
+            LOGGER.info(() -> "Quarantined corrupted storage file to " + quarantinedPath);
             return quarantinedPath;
         } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Unable to preserve corrupted storage file.", e);
             throw new AppException("Unable to preserve corrupted storage file.");
         }
     }
 
     public void save(PortfolioBook portfolioBook) throws AppException {
+        assert portfolioBook != null : "portfolioBook must not be null";
         if (portfolioBook == null) {
             throw new IllegalArgumentException("portfolioBook must not be null");
         }
+        LOGGER.fine(() -> "Saving portfolio book to " + filePath);
         createStorageFileIfMissing();
+        assert Files.exists(filePath) : "Storage file should exist after creation";
 
         List<String> lines = new ArrayList<>();
         lines.add("ACTIVE|" + nullToEmpty(portfolioBook.getActivePortfolioName()));
@@ -132,7 +146,10 @@ public class Storage {
 
         try {
             Files.write(filePath, lines);
+            assert Files.exists(filePath) : "Storage file must exist after write";
+            assert Files.size(filePath) > 0 : "Storage file should contain data after write";
         } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Unable to save storage file: " + filePath, e);
             throw new AppException("Unable to save storage file.");
         }
     }
@@ -144,6 +161,7 @@ public class Storage {
      * @throws AppException if reading fails or content is invalid.
      */
     public Watchlist loadWatchlist() throws AppException {
+        LOGGER.fine(() -> "Loading watchlist from " + watchlistFilePath);
         createWatchlistFileIfMissing();
         assert Files.exists(watchlistFilePath) : "Watchlist storage file should exist after initialization";
 
@@ -180,6 +198,7 @@ public class Storage {
 
             return watchlist;
         } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Unable to read watchlist storage file: " + watchlistFilePath, e);
             throw new AppException("Unable to read watchlist storage file.");
         }
     }
@@ -194,6 +213,7 @@ public class Storage {
         if (watchlist == null) {
             throw new IllegalArgumentException("watchlist must not be null");
         }
+        LOGGER.fine(() -> "Saving watchlist to " + watchlistFilePath);
         createWatchlistFileIfMissing();
 
         List<String> lines = new ArrayList<>();
@@ -209,6 +229,7 @@ public class Storage {
         try {
             Files.write(watchlistFilePath, lines);
         } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Unable to save watchlist storage file: " + watchlistFilePath, e);
             throw new AppException("Unable to save watchlist storage file.");
         }
     }
@@ -290,8 +311,8 @@ public class Storage {
     }
 
     private void loadHolding(String[] parts, PortfolioBook portfolioBook) throws AppException {
-        assert parts != null : "parts must not be null";
-        assert portfolioBook != null : "portfolioBook must not be null";
+        assert parts != null : "parts must be non-null";
+        assert portfolioBook != null : "portfolioBook must be non-null";
 
         if (parts.length == 6) {
             loadLegacyHolding(parts, portfolioBook);
@@ -309,9 +330,7 @@ public class Storage {
         double averageBuyPrice = parsePositiveDouble(parts[5]);
         Double lastPrice = parseOptionalPositiveDouble(parts[6]);
 
-        portfolioBook.ensurePortfolioExists(portfolioName);
-        Portfolio portfolio = portfolioBook.getPortfolio(portfolioName);
-        assert portfolio != null : "Portfolio should exist after ensurePortfolioExists";
+        Portfolio portfolio = getOrCreatePortfolio(portfolioName, portfolioBook);
         portfolio.restoreHolding(assetType, ticker, quantity, lastPrice, averageBuyPrice);
     }
 
@@ -322,9 +341,7 @@ public class Storage {
         double quantity = parsePositiveDouble(parts[4]);
         double restoredPrice = parsePositiveDouble(parts[5]);
 
-        portfolioBook.ensurePortfolioExists(portfolioName);
-        Portfolio portfolio = portfolioBook.getPortfolio(portfolioName);
-        assert portfolio != null : "Portfolio should exist after ensurePortfolioExists";
+        Portfolio portfolio = getOrCreatePortfolio(portfolioName, portfolioBook);
         portfolio.restoreHolding(assetType, ticker, quantity, restoredPrice, restoredPrice);
     }
 
@@ -398,23 +415,17 @@ public class Storage {
     }
 
     private AssetType parseAssetType(String rawType) throws AppException {
-        try {
-            return AssetType.fromString(rawType);
-        } catch (IllegalArgumentException e) {
-            throw new AppException(CORRUPTED_FILE_MESSAGE);
-        }
+        return onCorrupted(() -> AssetType.fromString(rawType), CORRUPTED_FILE_MESSAGE);
     }
 
     private double parsePositiveDouble(String rawValue) throws AppException {
-        try {
+        return onCorrupted(() -> {
             double value = Double.parseDouble(rawValue);
             if (value <= 0) {
-                throw new AppException(CORRUPTED_FILE_MESSAGE);
+                throw new IllegalArgumentException();
             }
             return value;
-        } catch (NumberFormatException e) {
-            throw new AppException(CORRUPTED_FILE_MESSAGE);
-        }
+        }, CORRUPTED_FILE_MESSAGE);
     }
 
     private Double parseOptionalPositiveDouble(String rawValue) throws AppException {
@@ -426,23 +437,35 @@ public class Storage {
     }
 
     private double parseAnyDouble(String rawValue) throws AppException {
-        try {
-            return Double.parseDouble(rawValue.trim());
-        } catch (NumberFormatException e) {
-            throw new AppException(CORRUPTED_FILE_MESSAGE);
-        }
+        return onCorrupted(() -> Double.parseDouble(rawValue.trim()), CORRUPTED_FILE_MESSAGE);
     }
 
     private String nullToEmpty(String value) {
         return value == null ? "" : value;
     }
 
-    private AssetType parseWatchlistAssetType(String rawType) throws AppException {
+    private Portfolio getOrCreatePortfolio(String portfolioName, PortfolioBook portfolioBook) throws AppException {
+        portfolioBook.ensurePortfolioExists(portfolioName);
+        Portfolio portfolio = portfolioBook.getPortfolio(portfolioName);
+        assert portfolio != null : "Portfolio should exist after ensurePortfolioExists";
+        return portfolio;
+    }
+
+    @FunctionalInterface
+    private interface CheckedSupplier<T> {
+        T get() throws Exception;
+    }
+
+    private <T> T onCorrupted(CheckedSupplier<T> supplier, String corruptedMessage) throws AppException {
         try {
-            return AssetType.fromString(rawType);
-        } catch (IllegalArgumentException e) {
-            throw new AppException(CORRUPTED_WATCHLIST_FILE_MESSAGE);
+            return supplier.get();
+        } catch (Exception e) {
+            throw new AppException(corruptedMessage);
         }
+    }
+
+    private AssetType parseWatchlistAssetType(String rawType) throws AppException {
+        return onCorrupted(() -> AssetType.fromString(rawType), CORRUPTED_WATCHLIST_FILE_MESSAGE);
     }
 
     private String parseWatchlistTicker(String rawTicker) throws AppException {
@@ -458,15 +481,13 @@ public class Storage {
             return null;
         }
 
-        try {
+        return onCorrupted(() -> {
             double value = Double.parseDouble(trimmed);
             if (value <= 0) {
-                throw new AppException(CORRUPTED_WATCHLIST_FILE_MESSAGE);
+                throw new IllegalArgumentException();
             }
             return value;
-        } catch (NumberFormatException e) {
-            throw new AppException(CORRUPTED_WATCHLIST_FILE_MESSAGE);
-        }
+        }, CORRUPTED_WATCHLIST_FILE_MESSAGE);
     }
 
     public record BulkUpdateResult(int successCount, int failedCount, List<String> failures) {

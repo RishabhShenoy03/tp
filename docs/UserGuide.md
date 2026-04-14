@@ -2,7 +2,7 @@
 
 ## Introduction
 
-CG2StocksTracker is a command-line portfolio tracker for amateur investors who prefer fast typing workflows.
+CG2StocksTracker is a command-line portfolio tracker for amateur investors who prefer typing commands.
 
 It helps you:
 
@@ -12,7 +12,7 @@ It helps you:
 - monitor realized and unrealized profit/loss
 - keep a watchlist for planned buys
 
-CG2StocksTracker is designed to give a clear, accurate view of your holdings without spreadsheets or heavy trading platforms.
+It gives you a clear view of your holdings without spreadsheets or large trading platforms.
 
 ## Quick Start
 
@@ -29,9 +29,9 @@ java -jar tp.jar
 If your downloaded file has a different name, replace `tp.jar` with that filename.
 
 6. Type commands and press Enter.
-7. Use `/help` to view available commands.
+7. Use `/help` to see the available commands.
 
-If you are running the project from source instead of the release `.jar`, open a terminal in the project root and use:
+If you run the project from source instead of the release `.jar`, open a terminal in the project root and use:
 
 ```bash
 # Windows
@@ -48,7 +48,7 @@ Notes about command syntax:
 - Commands must start with `/`.
 - Command words are case-insensitive. Example: `/LIST` is treated as `/list`.
 - Option keys are case-insensitive. Example: `--TYPE` is treated as `--type`.
-- Asset type values are case-insensitive: `stock`, `etf`, `bond`.
+- Asset type values ignore case: `stock`, `etf`, `bond`.
 - Tickers are normalized to uppercase in storage and display.
 - Tickers must not exceed 10 characters in length.
 - For options, each key must be followed by one value. Example: `--qty 10`.
@@ -67,7 +67,7 @@ CG2StocksTracker stores data in plain text files under `data/`.
 - Main file: `data/CG2StocksTracker.txt`
 - Watchlist file: `data/CG2StocksTracker.txt.watchlist`
 
-Data is saved automatically after successful state-changing commands:
+The app saves data automatically after successful commands that change data:
 
 - `/create`
 - `/use`
@@ -79,7 +79,7 @@ Data is saved automatically after successful state-changing commands:
 - `/watch remove`
 - `/watch buy`
 
-Read-only commands (`/list`, `/value`, `/insights`, `/help`) do not trigger save.
+Read-only commands (`/list`, `/value`, `/insights`, `/help`) do not save data.
 
 ## Features
 
@@ -115,7 +115,7 @@ Examples:
 Constraint:
 
 - Portfolio name must not start with `/`.
-- Portfolio name matching is case-insensitive and displayed as originally entered.
+- Portfolio name matching ignores case. The original casing is still shown.
 
 Expected result:
 
@@ -136,7 +136,7 @@ Example:
 
 Expected result:
 
-- Active portfolio changes to `NAME` (case-insensitive match).
+- The active portfolio changes to `NAME` (case-insensitive match).
 
 ### List holdings or portfolios: `/list`
 
@@ -154,11 +154,11 @@ Notes:
 
 - `/list` shows all holdings in active portfolio.
 - If no active portfolio exists, `/list` shows portfolio names.
-- Type-filtered list keeps the same table style but only one asset type.
+- A type filter shows the same table for one asset type only.
 - `/list --portfolios` shows portfolio-level realized and unrealized P&L in alphabetical order.
 - If there are no portfolios yet, `/list --portfolios` shows a message prompting you to create one.
 - Holdings table columns are: `TYPE`, `TICKR`, `QTY`, `AVG_BUY`, `MKT_PRICE`, `VALUE`.
-- `AVG_BUY` is cost basis. `MKT_PRICE` is the latest market price reference. `VALUE = QTY x MKT_PRICE`.
+- `AVG_BUY` is the cost basis. `MKT_PRICE` is the latest saved market price. `VALUE = QTY x MKT_PRICE`.
 
 ### Add holding: `/add`
 
@@ -224,7 +224,7 @@ Examples:
 
 ### Set market price: `/set`
 
-Sets market price for holdings. This does not buy or sell.
+Sets the market price for holdings. It does not buy or sell anything.
 
 Formats:
 
@@ -233,9 +233,9 @@ Formats:
 
 Behavior:
 
-- Without `--type`: updates only if exactly one holding with that ticker exists in the active portfolio.
+- Without `--type`: updates only if exactly one holding with that ticker is in the active portfolio.
 - If the same ticker exists across multiple asset types, command fails and requires `--type`.
-- With `--type`: update only one matching holding by `(type, ticker)`.
+- With `--type`: updates one matching holding by `(type, ticker)`.
 
 Validation:
 
@@ -263,7 +263,7 @@ Notes:
 - `TYPE` must be `stock`, `etf`, or `bond`.
 - Watchlist keys are `(type, ticker)`; duplicates are rejected.
 - `/watch add` requires a price; adding without `--price` is rejected.
-- `/watch buy` buys the specified `QTY` at watchlist price into target portfolio, then removes item from watchlist.
+- `/watch buy` buys the given `QTY` at the watchlist price into the target portfolio, then removes the item from the watchlist.
 - `/watch buy` fails if watchlist item has no price.
 
 Examples:
@@ -274,7 +274,7 @@ Examples:
 
 ### Bulk set prices from CSV: `/setmany`
 
-Loads ticker prices from CSV and updates matching holdings in active portfolio.
+Loads ticker prices from a CSV file and updates matching holdings in the active portfolio.
 
 Format:
 
@@ -290,7 +290,7 @@ CSV requirements:
 
 Behavior:
 
-- Valid rows are processed even if some rows fail.
+- Valid rows are still processed even if some rows fail.
 - Output shows success count, failure count, and row-level failure reasons.
 - A row fails if the ticker does not exist in the active portfolio.
 
@@ -329,7 +329,7 @@ Formula:
 
 ### View insights: `/insights`
 
-Shows holding-level performance insights, with optional filters and chart.
+Shows holding-level performance insights, with optional filters and a chart.
 
 Format:
 
@@ -358,7 +358,7 @@ Examples:
 
 ## Error Handling
 
-Common reasons commands fail:
+Common reasons a command can fail:
 
 - command does not start with `/`
 - unknown command word
@@ -403,7 +403,7 @@ A: If you omit `--price`, the app uses saved last price. If no saved last price 
 
 **Q: How is average buy price computed?**
 
-A: Weighted average cost is used. Buy-side fees are included in cost basis.
+A: The app uses weighted average cost. Buy-side fees are included in the cost basis.
 
 **Q: Are fees used in P&L calculations?**
 

@@ -9,7 +9,7 @@
 
 ### Target user profile
 
-CG2StocksTracker targets typing-oriented amateur investors who want a fast command-line workflow to manage personal investment holdings.
+CG2StocksTracker is for amateur investors who prefer a fast command-line workflow for tracking their holdings.
 
 Typical user characteristics:
 
@@ -20,11 +20,9 @@ Typical user characteristics:
 
 ### Value proposition
 
-Make informed investment decisions with clarity and confidence.
+Track investment holdings clearly from the command line.
 
-CG2StocksTracker helps amateur investors understand the real, current value of their assets and anticipate future market trends using clear analysis and actionable insights.
-
-CG2StocksTracker helps typing-oriented amateur investors maintain a clear, accurate view of their personal investment holdings through a command-line interface, enabling quick portfolio reviews and basic analysis without the complexity of spreadsheets or heavyweight trading platforms.
+It helps typing-oriented amateur investors see the current value of their assets, review simple performance data, and maintain a clear portfolio view without spreadsheets or large trading platforms.
 
 ## Design
 
@@ -35,7 +33,7 @@ The application follows a layered command pipeline:
 1. `Ui` reads command text and displays responses.
 2. `Parser` converts raw input to `ParsedCommand`.
 3. `CG2StocksTracker` dispatches execution by `CommandType`.
-4. Model classes (`PortfolioBook`, `Portfolio`, `Holding`, `Watchlist`) perform business logic.
+4. Model classes (`PortfolioBook`, `Portfolio`, `Holding`, `Watchlist`) handle the business logic.
 5. `Storage` persists state after successful state-changing operations.
 
 ![Architecture Overview Class Diagram](diagrams/PNG/architecture-overview-class.png)
@@ -44,11 +42,11 @@ The application follows a layered command pipeline:
 
 - `CG2StocksTracker`: application coordinator and command dispatcher.
 - `Parser`: command syntax validation and typed command construction.
-- `ParsedCommand`: immutable command DTO with optional fields and fee aggregation.
+- `ParsedCommand`: immutable command DTO with optional fields and combined fee values.
 - `PortfolioBook`: multi-portfolio registry and active-portfolio context.
 - `Portfolio`: holding lifecycle, valuation, and realized/unrealized P&L aggregation.
 - `Holding`: quantity, cost basis, last price, and per-holding P&L logic.
-- `Watchlist`: watch candidates and buy-into-portfolio operation.
+- `Watchlist`: watchlist entries and buy-into-portfolio logic.
 - `Storage`: persistence of portfolios/watchlist and CSV price import for `/setmany`.
 - `Ui`: user-facing formatting for command outputs and errors.
 
@@ -150,7 +148,7 @@ Sets active portfolio context used by most holdings commands.
 
 ### High-level design
 
-Supports both holdings listing and portfolio summary listing.
+Supports both holdings lists and portfolio summary lists.
 
 Supported variants:
 
@@ -205,7 +203,7 @@ Supported variants:
 
 ### High-level design
 
-Adds units to an existing holding or creates a new holding in active portfolio.
+Adds units to an existing holding or creates a new holding in the active portfolio.
 
 ### Component-level implementation
 
@@ -304,7 +302,7 @@ Sells part or all of a holding and records realized P&L.
 
 ### High-level design
 
-Updates last known prices used for valuation and remove fallback pricing.
+Updates the last known prices used for valuation and for `/remove` fallback pricing.
 
 Variants:
 
@@ -404,10 +402,14 @@ Variants:
 ### Current limitations
 
 - Watch-buy does not support per-trade fees.
+- `/watch buy` does not support fee fields.
 
 ### Possible future improvements
 
 - Add optional fee fields to watch-buy flow.
+- Make users re-enter watchlist items with `/add` instead of supporting `/watch buy`.
+- Rejected: it adds repeated input and weakens the point of the watchlist flow.
+- Add optional fee fields to the watch-buy flow.
 
 ## `/setmany` - Bulk CSV Price Update
 
@@ -644,7 +646,7 @@ Terminates main loop cleanly.
 
 ### High-level design
 
-Persistence uses text files for simplicity and transparency.
+The app uses plain text files for storage. This keeps the data easy to inspect.
 
 Main records in `data/CG2StocksTracker.txt`:
 
@@ -692,10 +694,10 @@ Watchlist records in `data/CG2StocksTracker.txt.watchlist`:
 ## Non-Functional Requirements
 
 - Platform support: the product must run on Java 17 or above on Windows, macOS, and Linux.
-- Reliability: invalid or malformed user input must not terminate the application; after an error, the app must display an error message and continue accepting the next command.
-- Persistence: after any successful state-changing command, the resulting portfolio and watchlist data must still be present after the application is closed and started again.
-- Usability: when a command is rejected due to invalid input, the error message must identify the invalid command or option and state the expected command format or constraint.
-- Performance: on a typical personal dataset of up to 10 portfolios and 200 total holdings, each single command should complete and print its response within 1 second on a standard developer laptop.
+- Reliability: invalid user input must not terminate the application. After an error, the app must show a message and continue accepting commands.
+- Persistence: after any successful state-changing command, the updated portfolio and watchlist data must still be present after the app is closed and started again.
+- Usability: when a command is rejected, the error message must identify the invalid command or option and show the expected format or constraint.
+- Performance: on a typical personal dataset of up to 10 portfolios and 200 total holdings, each command should finish and print its response within 1 second on a standard developer laptop.
 
 ## Glossary
 
