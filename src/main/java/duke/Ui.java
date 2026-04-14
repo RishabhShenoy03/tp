@@ -384,7 +384,7 @@ public class Ui {
                     formatMoney(avg),
                     lastText,
                     unrealizedText,
-                    unrealizedPctText);
+                    unrealizedPctText));
         }
 
         for (Holding holding : filteredHoldings) {
