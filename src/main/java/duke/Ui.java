@@ -283,7 +283,7 @@ public class Ui {
         System.out.println("Realized P&L: " + formatSignedMoney(portfolio.getTotalRealizedPnl()));
         System.out.println("Unrealized P&L by holding:");
         System.out.println(String.format("%-6s %-5s %8s %8s %8s %10s",
-            "TICKER", "TYPE", "QTY", "AVG", "LAST", "U_PNL"));
+            "TICKR", "TYPE", "QTY", "AVG", "LAST", "U_PNL"));
         System.out.println("-------------------------------------------------------");
 
         List<Holding> holdings = portfolio.getHoldings();
@@ -376,7 +376,7 @@ public class Ui {
                     ? formatSignedPercent(unrealized / costBasis)
                     : "n/a";
 
-                System.out.println(String.format("%-3d %-5s %-" + TICKER_WIDTH + "s %8s %8s %8s %10s %8s",
+            System.out.println(String.format("%-3d %-5s %-" + TICKER_WIDTH + "s %8s %8s %8s %10s %8s",
                     i + 1,
                     holding.getAssetType().name(),
                     toMaxTickerWidth(holding.getTicker()),

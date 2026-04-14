@@ -334,15 +334,6 @@ public class Parser {
         }
         return ticker;
     }
-  
-    private void validatePortfolioName(String name) throws AppException {
-        if (name == null || name.isBlank()) {
-            throw new AppException("Portfolio name must not be blank");
-        }
-        if (name.startsWith("/")) {
-            throw new AppException("Portfolio name cannot start with '/'");
-        }
-    }
 
     private String joinTail(List<String> tokens, int startIndex) {
         return String.join(" ", tokens.subList(startIndex, tokens.size()));

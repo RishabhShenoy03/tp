@@ -2,7 +2,6 @@
 package duke;
 
 import java.nio.file.Path;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -103,7 +102,6 @@ public class CG2StocksTracker {
                     break;
                 }
             } catch (AppException e) {
-                LOGGER.log(Level.WARNING, "Command failed: " + input, e);
                 ui.beginResponse();
                 ui.showError(e.getMessage());
                 ui.endResponse();
