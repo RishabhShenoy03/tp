@@ -204,13 +204,13 @@ public class ParserTest {
     @Test
     void parseCreate_withBlankQuotedName_throws() {
         AppException ex = assertThrows(AppException.class, () -> parser.parse("/create \" \""));
-        assertEquals("Portfolio name must not be blank", ex.getMessage());
+        assertEquals("Portfolio name cannot be blank", ex.getMessage());
     }
 
     @Test
     void parseUse_withBlankQuotedName_throws() {
         AppException ex = assertThrows(AppException.class, () -> parser.parse("/use \" \""));
-        assertEquals("Portfolio name must not be blank", ex.getMessage());
+        assertEquals("Portfolio name cannot be blank", ex.getMessage());
     }
 
     @Test

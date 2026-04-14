@@ -46,8 +46,13 @@ public class Parser {
         if (tokens.size() < 2) {
             throw new AppException("Usage: /create NAME");
         }
-        String name = joinTail(tokens, 1).strip();
-        validatePortfolioName(name);
+        String name = joinTail(tokens, 1).trim();
+        if (name.isBlank()) {
+            throw new AppException("Portfolio name cannot be blank");
+        }
+        if (name.startsWith("/")) {
+            throw new AppException("Portfolio name cannot start with '/'");
+        }
         return new ParsedCommand(CommandType.CREATE, name, null, null, null, null,
                 null, null, null, null, null);
     }
@@ -56,8 +61,10 @@ public class Parser {
         if (tokens.size() < 2) {
             throw new AppException("Usage: /use NAME");
         }
-        String name = joinTail(tokens, 1).strip();
-        validatePortfolioName(name);
+        String name = joinTail(tokens, 1).trim();
+        if (name.isBlank()) {
+            throw new AppException("Portfolio name cannot be blank");
+        }
         return new ParsedCommand(CommandType.USE, name, null, null, null, null,
                 null, null, null, null, null);
     }

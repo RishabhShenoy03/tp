@@ -13,6 +13,18 @@ public class Ui {
     private static final int CHART_SIDE_WIDTH = 23;
     private static final int TICKER_WIDTH = 5;
 
+    private void println(String message) {
+        System.out.println(message);
+    }
+
+    private void printDivider() {
+        println(DIVIDER);
+    }
+
+    private void printFormatted(String format, Object... args) {
+        println(String.format(format, args));
+    }
+
     /**
      * Reads the next user command from standard input.
      * Returns /exit when input is exhausted so the app can terminate gracefully.
@@ -50,14 +62,14 @@ public class Ui {
      */
     public void beginResponse() {
         System.out.println();
-        System.out.println(DIVIDER);
+        printDivider();
     }
 
     /**
      * Prints the divider that marks the end of a response block.
      */
     public void endResponse() {
-        System.out.println(DIVIDER);
+        printDivider();
         System.out.println();
     }
 
@@ -238,14 +250,14 @@ public class Ui {
             String priceText = holding.hasPrice() ? formatMoney(holding.getLastPrice()) : "-";
             String valueText = holding.hasPrice() ? formatMoney(holding.getValue()) : "-";
 
-            System.out.println(String.format("%-3d %-5s %-6s %8s %8s %10s %10s",
+            printFormatted("%-3d %-5s %-6s %8s %8s %10s %10s",
                     index,
                     holding.getAssetType().name(),
                     toMaxTickerWidth(holding.getTicker()),
                     formatNumber(holding.getQuantity()),
                     formatMoney(holding.getAverageBuyPrice()),
                     priceText,
-                    valueText));
+                    valueText);
 
             if (holding.hasPrice()) {
                 filteredValueTotal += holding.getValue();
@@ -269,21 +281,27 @@ public class Ui {
         System.out.println("Portfolio: " + portfolio.getName());
         System.out.println("Current total value: " + formatMoney(portfolio.getCurrentTotalValue()));
         System.out.println("Realized P&L: " + formatSignedMoney(portfolio.getTotalRealizedPnl()));
+<<<<<<< Updated upstream
         System.out.println("Unrealized P&L by holding:");
         System.out.println(String.format("%-6s %-5s %8s %8s %8s %10s",
             "TICKR", "TYPE", "QTY", "AVG", "LAST", "U_PNL"));
+=======
+        System.out.println("Unrealised P&L by holding:");
+        printFormatted("%-6s %-5s %8s %8s %8s %10s",
+            "TICKR", "TYPE", "QTY", "AVG", "LAST", "U_PNL");
+>>>>>>> Stashed changes
         System.out.println("-------------------------------------------------------");
 
         List<Holding> holdings = portfolio.getHoldings();
         for (Holding holding : holdings) {
             String lastPriceText = holding.hasPrice() ? formatMoney(holding.getLastPrice()) : "-";
-            System.out.println(String.format("%-6s %-5s %8s %8s %8s %10s",
+            printFormatted("%-6s %-5s %8s %8s %8s %10s",
                 toMaxTickerWidth(holding.getTicker()),
                 holding.getAssetType().name(),
                 formatNumber(holding.getQuantity()),
                 formatMoney(holding.getAverageBuyPrice()),
                 lastPriceText,
-                formatSignedMoney(holding.getUnrealizedPnl())));
+                formatSignedMoney(holding.getUnrealizedPnl()));
         }
 
         System.out.println("Total unrealized P&L: " + formatSignedMoney(portfolio.getTotalUnrealizedPnl()));
@@ -364,7 +382,7 @@ public class Ui {
                     ? formatSignedPercent(unrealized / costBasis)
                     : "n/a";
 
-            System.out.println(String.format("%-3d %-5s  %-5s%8s %8s %8s %10s %8s",
+            printFormatted("%-3d %-5s  %-5s%8s %8s %8s %10s %8s",
                     i + 1,
                     holding.getAssetType().name(),
                     toMaxTickerWidth(holding.getTicker()),
@@ -372,7 +390,7 @@ public class Ui {
                     formatMoney(avg),
                     lastText,
                     unrealizedText,
-                    unrealizedPctText));
+                    unrealizedPctText);
         }
 
         for (Holding holding : filteredHoldings) {
@@ -516,14 +534,14 @@ public class Ui {
 
         System.out.println("\nP&L chart (loss | gain):");
         System.out.println("Scale: full side width = " + formatSignedPercent(maxAbsPercent));
-        System.out.println(String.format("%-" + TICKER_WIDTH + "s %s",
+        printFormatted("%-" + TICKER_WIDTH + "s %s",
                 "",
-                "-".repeat(CHART_SIDE_WIDTH) + "|" + "+".repeat(CHART_SIDE_WIDTH)));
-        System.out.println(String.format("%-" + TICKER_WIDTH + "s %s",
+                "-".repeat(CHART_SIDE_WIDTH) + "|" + "+".repeat(CHART_SIDE_WIDTH));
+        printFormatted("%-" + TICKER_WIDTH + "s %s",
                 "",
                 "loss" + " ".repeat(CHART_SIDE_WIDTH - 4)
                         + "|"
-                        + " ".repeat(CHART_SIDE_WIDTH - 4) + "gain"));
+                        + " ".repeat(CHART_SIDE_WIDTH - 4) + "gain");
         for (Holding holding : holdings) {
             double costBasis = holding.getQuantity() * holding.getAverageBuyPrice();
             double unrealizedPercent = 0.0;
@@ -531,10 +549,10 @@ public class Ui {
                 unrealizedPercent = holding.getUnrealizedPnl() / costBasis;
             }
             String bar = buildDivergingBar(unrealizedPercent, maxAbsPercent);
-            System.out.println(String.format("%-" + TICKER_WIDTH + "s %s %10s",
+            printFormatted("%-" + TICKER_WIDTH + "s %s %10s",
                     toMaxTickerWidth(holding.getTicker()),
                     bar,
-                    formatSignedPercent(unrealizedPercent)));
+                    formatSignedPercent(unrealizedPercent));
         }
     }
 

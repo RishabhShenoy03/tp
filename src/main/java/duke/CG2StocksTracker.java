@@ -2,6 +2,8 @@
 package duke;
 
 import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Main application controller for the Stocks Tracker command-line program.
@@ -9,6 +11,8 @@ import java.nio.file.Path;
  */
 public class CG2StocksTracker {
     private static final String FILE_PATH = "data/CG2StocksTracker.txt";
+
+    private static final Logger LOGGER = Logger.getLogger(CG2StocksTracker.class.getName());
 
     private final Ui ui;
     private final Parser parser;
@@ -25,6 +29,8 @@ public class CG2StocksTracker {
         this.ui = new Ui();
         this.parser = new Parser();
         this.storage = new Storage(filePath);
+
+        LOGGER.fine(() -> "Initializing CG2StocksTracker with storage file: " + filePath);
 
         PortfolioBook loadedBook;
         try {
@@ -65,6 +71,19 @@ public class CG2StocksTracker {
         new CG2StocksTracker(FILE_PATH).run();
     }
 
+    @FunctionalInterface
+    private interface ThrowableSupplier<T> {
+        T get() throws AppException;
+    }
+
+    private <T> T translateIllegalArgument(ThrowableSupplier<T> supplier) throws AppException {
+        try {
+            return supplier.get();
+        } catch (IllegalArgumentException e) {
+            throw new AppException(e.getMessage());
+        }
+    }
+
     /**
      * Runs the main application loop until the user exits.
      */
@@ -73,6 +92,7 @@ public class CG2StocksTracker {
 
         while (true) {
             String input = ui.readCommand();
+            LOGGER.fine(() -> "Received input: " + input);
 
             try {
                 ParsedCommand command = parser.parse(input);
@@ -83,6 +103,7 @@ public class CG2StocksTracker {
                     break;
                 }
             } catch (AppException e) {
+                LOGGER.log(Level.WARNING, "Command failed: " + input, e);
                 ui.beginResponse();
                 ui.showError(e.getMessage());
                 ui.endResponse();
@@ -249,12 +270,8 @@ public class CG2StocksTracker {
         Double price = command.price();
         double fees = command.totalFees();
 
-        Portfolio.RemoveResult result;
-        try {
-            result = portfolio.removeHolding(type, ticker, qty, price, fees);
-        } catch (IllegalArgumentException e) {
-            throw new AppException(e.getMessage());
-        }
+        Portfolio.RemoveResult result = translateIllegalArgument(() ->
+                portfolio.removeHolding(type, ticker, qty, price, fees));
         save();
         String feeText = result.fees() > 0 ? ", fees = " + Ui.formatMoney(result.fees()) : "";
         ui.showMessage("Sold " + Ui.formatNumber(result.soldQuantity())
@@ -331,11 +348,10 @@ public class CG2StocksTracker {
         String ticker = command.ticker();
         Double price = command.price();
 
-        try {
+        translateIllegalArgument(() -> {
             watchlist.addItem(type, ticker, price);
-        } catch (IllegalArgumentException e) {
-            throw new AppException(e.getMessage());
-        }
+            return null;
+        });
 
         save();
         String priceText = price == null ? "-" : Ui.formatMoney(price);
@@ -346,12 +362,7 @@ public class CG2StocksTracker {
         AssetType type = command.assetType();
         String ticker = command.ticker();
 
-        boolean removed;
-        try {
-            removed = watchlist.removeItem(type, ticker);
-        } catch (IllegalArgumentException e) {
-            throw new AppException(e.getMessage());
-        }
+        boolean removed = translateIllegalArgument(() -> watchlist.removeItem(type, ticker));
 
         if (!removed) {
             throw new AppException("Watchlist item not found: " + ticker + " (" + type.toDisplay() + ")");
@@ -367,12 +378,8 @@ public class CG2StocksTracker {
         double quantity = command.quantity();
         String portfolioName = command.listTarget();
 
-        Watchlist.BuyResult result;
-        try {
-            result = watchlist.buyItem(type, ticker, quantity, portfolioName, portfolioBook);
-        } catch (IllegalArgumentException e) {
-            throw new AppException(e.getMessage());
-        }
+        Watchlist.BuyResult result = translateIllegalArgument(() ->
+                watchlist.buyItem(type, ticker, quantity, portfolioName, portfolioBook));
 
         save();
         ui.showMessage("Bought " + Ui.formatNumber(result.boughtQuantity())
@@ -523,6 +530,7 @@ public class CG2StocksTracker {
      * @throws AppException if saving fails.
      */
     private void save() throws AppException {
+        LOGGER.fine("Persisting portfolio and watchlist state");
         storage.save(portfolioBook);
         storage.saveWatchlist(watchlist);
     }
