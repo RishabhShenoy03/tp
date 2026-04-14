@@ -18,15 +18,18 @@ public class PortfolioBook {
 
     public void createPortfolio(String name) throws AppException {
         String displayName = requireDisplayPortfolioName(name);
+        assert displayName != null && !displayName.isBlank() : "displayName must not be null or blank";
         String portfolioKey = toPortfolioKey(displayName);
         if (portfolios.containsKey(portfolioKey)) {
             throw new AppException("Portfolio already exists: " + portfolios.get(portfolioKey).getName());
         }
 
         portfolios.put(portfolioKey, new Portfolio(displayName));
+        assert portfolios.containsKey(portfolioKey) : "Created portfolio must be in the book";
 
         if (activePortfolioKey == null) {
             activePortfolioKey = portfolioKey;
+            assert activePortfolioKey != null : "Active portfolio key must be set on first creation";
         }
     }
 
@@ -39,11 +42,13 @@ public class PortfolioBook {
 
     public void usePortfolio(String name) throws AppException {
         String displayName = requireDisplayPortfolioName(name);
+        assert displayName != null && !displayName.isBlank() : "displayName must not be null or blank";
         String portfolioKey = toPortfolioKey(displayName);
         if (!portfolios.containsKey(portfolioKey)) {
             throw new AppException("Portfolio not found: " + displayName);
         }
         activePortfolioKey = portfolioKey;
+        assert activePortfolioKey.equals(portfolioKey) : "Active portfolio key was not updated";
     }
 
     public boolean hasActivePortfolio() {
@@ -66,7 +71,12 @@ public class PortfolioBook {
     }
 
     public List<Portfolio> getPortfolios() {
-        return new ArrayList<>(portfolios.values());
+        List<Portfolio> result = new ArrayList<>(portfolios.values());
+        assert result != null : "getPortfolios result cannot be null";
+        for (Portfolio p : result) {
+            assert p != null : "Portfolios list should not contain null entries";
+        }
+        return result;
     }
 
     public Portfolio getPortfolio(String name) {

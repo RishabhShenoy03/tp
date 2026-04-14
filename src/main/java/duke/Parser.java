@@ -43,30 +43,33 @@ public class Parser {
     }
 
     private ParsedCommand parseCreate(List<String> tokens) throws AppException {
+        assert tokens != null && !tokens.isEmpty() : "tokens must not be null or empty";
         if (tokens.size() < 2) {
             throw new AppException("Usage: /create NAME");
         }
-        String name = joinTail(tokens, 1).trim();
-        if (name.isBlank()) {
-            throw new AppException("Portfolio name cannot be blank");
-        }
-        if (name.startsWith("/")) {
-            throw new AppException("Portfolio name cannot start with '/'");
-        }
-        return new ParsedCommand(CommandType.CREATE, name, null, null, null, null,
+        String name = joinTail(tokens, 1).strip();
+        assert name != null : "portfolio name must not be null after joining";
+        validatePortfolioName(name);
+        ParsedCommand result = new ParsedCommand(CommandType.CREATE, name, null, null, null, null,
                 null, null, null, null, null);
+        assert result.type() == CommandType.CREATE : "Command type must be CREATE";
+        assert result.name().equals(name) : "Command name must match provided name";
+        return result;
     }
 
     private ParsedCommand parseUse(List<String> tokens) throws AppException {
+        assert tokens != null && !tokens.isEmpty() : "tokens must not be null or empty";
         if (tokens.size() < 2) {
             throw new AppException("Usage: /use NAME");
         }
-        String name = joinTail(tokens, 1).trim();
-        if (name.isBlank()) {
-            throw new AppException("Portfolio name cannot be blank");
-        }
-        return new ParsedCommand(CommandType.USE, name, null, null, null, null,
+        String name = joinTail(tokens, 1).strip();
+        assert name != null : "portfolio name must not be null after joining";
+        validatePortfolioName(name);
+        ParsedCommand result = new ParsedCommand(CommandType.USE, name, null, null, null, null,
                 null, null, null, null, null);
+        assert result.type() == CommandType.USE : "Command type must be USE";
+        assert result.name().equals(name) : "Command name must match provided name";
+        return result;
     }
 
     private void validatePortfolioName(String name) throws AppException {
@@ -324,6 +327,15 @@ public class Parser {
         }
     }
 
+    private void validatePortfolioName(String name) throws AppException {
+        if (name == null || name.isBlank()) {
+            throw new AppException("Portfolio name must not be blank");
+        }
+        if (name.startsWith("/")) {
+            throw new AppException("Portfolio name cannot start with '/'");
+        }
+    }
+
     private String normaliseTicker(String rawTicker) {
         return rawTicker.toUpperCase();
     }
@@ -333,6 +345,7 @@ public class Parser {
     }
 
     private List<String> tokenise(String input) throws AppException {
+        assert input != null : "input must not be null";
         List<String> tokens = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         boolean inQuotes = false;
@@ -364,6 +377,7 @@ public class Parser {
             tokens.add(current.toString());
         }
 
+        assert tokens != null : "tokenise result cannot be null";
         return tokens;
     }
 }

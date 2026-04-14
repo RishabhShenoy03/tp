@@ -27,19 +27,28 @@ public class Portfolio {
     }
 
     public double addHolding(AssetType assetType, String ticker, double quantity, double purchasePrice, double fees) {
+        assert assetType != null : "assetType must not be null";
+        assert ticker != null && !ticker.isBlank() : "ticker must not be null or blank";
+        assert quantity > 0 && purchasePrice > 0 : "quantity and purchasePrice must be positive";
+
         String key = makeKey(assetType, ticker);
 
         if (holdings.containsKey(key)) {
             Holding existing = holdings.get(key);
             existing.addQuantity(quantity, purchasePrice, fees);
             existing.setLastPrice(purchasePrice);
-            return existing.getQuantity();
+            double resultQty = existing.getQuantity();
+            assert resultQty > 0 : "Updated holding quantity must be positive";
+            return resultQty;
         }
 
         double effectivePurchasePrice = ((purchasePrice * quantity) + fees) / quantity;
         Holding holding = new Holding(assetType, ticker, quantity, effectivePurchasePrice);
         holdings.put(key, holding);
-        return holding.getQuantity();
+        assert holdings.containsKey(key) : "Holding was not added to portfolio";
+        double resultQty = holding.getQuantity();
+        assert resultQty == quantity : "Added holding quantity should match requested quantity";
+        return resultQty;
     }
 
     public Holding getHolding(AssetType assetType, String ticker) {
@@ -133,7 +142,12 @@ public class Portfolio {
     }
 
     public List<Holding> getHoldings() {
-        return new ArrayList<>(holdings.values());
+        List<Holding> result = new ArrayList<>(holdings.values());
+        assert result != null : "getHoldings result cannot be null";
+        for (Holding h : result) {
+            assert h != null : "Holdings list should not contain null entries";
+        }
+        return result;
     }
 
     public double getTotalRealizedPnl() {
