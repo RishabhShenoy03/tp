@@ -281,15 +281,9 @@ public class Ui {
         System.out.println("Portfolio: " + portfolio.getName());
         System.out.println("Current total value: " + formatMoney(portfolio.getCurrentTotalValue()));
         System.out.println("Realized P&L: " + formatSignedMoney(portfolio.getTotalRealizedPnl()));
-<<<<<<< Updated upstream
-        System.out.println("Unrealized P&L by holding:");
-        System.out.println(String.format("%-6s %-5s %8s %8s %8s %10s",
-            "TICKR", "TYPE", "QTY", "AVG", "LAST", "U_PNL"));
-=======
         System.out.println("Unrealised P&L by holding:");
         printFormatted("%-6s %-5s %8s %8s %8s %10s",
             "TICKR", "TYPE", "QTY", "AVG", "LAST", "U_PNL");
->>>>>>> Stashed changes
         System.out.println("-------------------------------------------------------");
 
         List<Holding> holdings = portfolio.getHoldings();

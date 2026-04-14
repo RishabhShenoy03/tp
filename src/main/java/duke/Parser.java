@@ -327,15 +327,6 @@ public class Parser {
         }
     }
 
-    private void validatePortfolioName(String name) throws AppException {
-        if (name == null || name.isBlank()) {
-            throw new AppException("Portfolio name must not be blank");
-        }
-        if (name.startsWith("/")) {
-            throw new AppException("Portfolio name cannot start with '/'");
-        }
-    }
-
     private String normaliseTicker(String rawTicker) {
         return rawTicker.toUpperCase();
     }
